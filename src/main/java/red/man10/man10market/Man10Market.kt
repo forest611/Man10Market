@@ -15,8 +15,12 @@ class Man10Market : JavaPlugin() {
     override fun onEnable() {
         // Plugin startup logic
 
+        saveDefaultConfig()
+
         instance = this
         bankAPI = BankAPI(this)
+
+        getCommand("mce")!!.setExecutor(Command)
 
         MappRenderer.setup(this)
     }

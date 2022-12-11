@@ -49,8 +49,11 @@ object Market {
             return PriceData(item,0.0,0.0)
         }
 
-        ask = list.filter { f -> f.sell }.minOf { m -> m.price }//売り指値の最安値
-        bid = list.filter { f -> f.buy }.maxOf { m -> m.price }//買い指値の最高値
+        val sell = list.filter { f -> f.sell }
+        val buy = list.filter { f -> f.buy }
+
+        ask = if (sell.isEmpty()) 0.0 else sell.minOf { it.price }
+        bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
         return PriceData(item,ask,bid)
     }
@@ -88,6 +91,9 @@ object Market {
         return list
     }
 
+    fun getOrderList(item: String,callback:(List<OrderData>?)->Unit){
+        transactionQueue.add { callback.invoke(asyncGetOrderList(item)) }
+    }
 
     //成り行き注文
     fun sendMarketBuy(uuid:UUID,item:String,lot: Int){
@@ -278,7 +284,7 @@ object Market {
             val requireMoney = lot*fixedPrice
 
             if (!bankAPI.withdraw(uuid,requireMoney,"Man10MarketOrderBuy","マーケット指値買い")){
-                msg(p.player,"§c§l銀行の残高が足りません！(必要金額:${format(fixedPrice)})")
+                msg(p.player,"§c§l銀行の残高が足りません！(必要金額:${format(requireMoney)})")
                 return@add
             }
 
@@ -332,7 +338,7 @@ object Market {
 
             ItemBankAPI.takeItemAmount(uuid,uuid,item,lot){
                 if (it==null){
-                    msg(p.player,"§c§l取り出し失敗！")
+                    msg(p.player,"§c§lアイテム取り出し失敗！")
                     return@takeItemAmount
                 }
                 mysql.execute("INSERT INTO order_table (player, uuid, item_id, price, buy, sell, lot, entry_date) " +
@@ -426,8 +432,9 @@ object Market {
             }catch (e:InterruptedException){
                 Bukkit.getLogger().info("取引スレッドを停止しました")
                 break
-            } catch (_:Exception){
-
+            } catch (e:Exception){
+                Bukkit.getLogger().info(e.message)
+                e.stackTrace.forEach { Bukkit.getLogger().info("${it.className};${it.methodName};${it.lineNumber}") }
             }
         }
 

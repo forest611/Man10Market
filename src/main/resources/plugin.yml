@@ -6,3 +6,7 @@ softdepend:
   - Man10CommonLibs
   - Man10Bank
   - Man10ItemBank
+
+commands:
+  mce:
+    description: Man10Market
