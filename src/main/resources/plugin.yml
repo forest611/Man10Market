@@ -5,3 +5,4 @@ api-version: 1.17
 softdepend:
   - Man10CommonLibs
   - Man10Bank
+  - Man10ItemBank

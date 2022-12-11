@@ -10,4 +10,6 @@ object Util {
         p?.sendMessage(prefix+msg)
     }
 
-}
+    fun format(amount: Double,digit:Int = 0):String{
+        return String.format("%,.${digit}f", amount)
+    }}
