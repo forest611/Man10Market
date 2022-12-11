@@ -8,8 +8,6 @@ import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlin.math.floor
 
 
@@ -109,11 +107,12 @@ object Market {
             //安い順に売り注文を並べる
             var firstOrder : OrderData?
 
-            //成立個数
-            var require = lot
+            //残り個数
+            var remainAmount = lot
 
-            while (require>0){
+            while (remainAmount>0){
 
+                //売り指値の最安値を取得
                 firstOrder = asyncGetOrderList(item)?.filter { it.sell }?.minByOrNull { it.price }
 
                 //指値が亡くなった
@@ -122,42 +121,25 @@ object Market {
                     return@add
                 }
 
-                //指値が要求個数より多い場合
-                if (firstOrder.lot>require){
+                //このループで取引する数量
+                val tradeAmount = if (firstOrder.lot>remainAmount) remainAmount else firstOrder.lot
 
-                    if (!bankAPI.withdraw(uuid,lot*firstOrder.price,"Man10MarketBuy","マーケット成行買い")){
-                        msg(p,"§c§l銀行の残高が足りません！")
-                        return@add
-                    }
-
-                    asyncTradeOrder(firstOrder.orderID,lot)
-                    ItemBankAPI.addItemAmount(uuid,uuid,item,lot)
-
-                    msg(p,"§e§l${lot}個購入")
-
-                    return@add
-                }
-
-                //指値が要求個数以下の場合(注文が通ればこの指値は消える)
-
-                //指値の注文数
-                val orderLot = firstOrder.lot
-
-                if (!bankAPI.withdraw(uuid,orderLot*firstOrder.price,"Man10MarketBuy","マーケット成行買い")){
+                if (!bankAPI.withdraw(uuid,tradeAmount*firstOrder.price,"Man10MarketBuy","マーケット成行買い")){
                     msg(p,"§c§l銀行の残高が足りません！")
                     return@add
                 }
 
-                asyncTradeOrder(firstOrder.orderID,orderLot)
-                ItemBankAPI.addItemAmount(uuid,uuid,item,orderLot)
+                if (asyncTradeOrder(firstOrder.orderID,tradeAmount)==null ){
+                    Bukkit.getLogger().info("ErrorModifyOrder")
+                    continue
+                }
 
-                require-=orderLot
+                ItemBankAPI.addItemAmount(uuid,uuid,item,tradeAmount)
 
-                msg(p,"§e§l${orderLot}個購入")
+                remainAmount -= tradeAmount
 
-                continue
+                msg(p,"§e§l${tradeAmount}個購入")
             }
-
         }
     }
 
@@ -174,11 +156,12 @@ object Market {
             //高い順に買い注文を並べる
             var firstOrder : OrderData?
 
-            //成立個数
-            var require = lot
+            //残り個数
+            var remainAmount = lot
 
-            while (require>0){
+            while (remainAmount>0){
 
+                //買い指値の最高値
                 firstOrder = asyncGetOrderList(item)?.filter { it.buy }?.maxByOrNull { it.price }
 
                 //指値が亡くなった
@@ -187,55 +170,29 @@ object Market {
                     return@add
                 }
 
-                //指値が要求個数より多い場合
-                if (firstOrder.lot>require){
+                //このループで取引する数量
+                val tradeAmount = if (firstOrder.lot>remainAmount) remainAmount else firstOrder.lot
 
-                    ItemBankAPI.takeItemAmount(uuid,uuid,item,lot){
+                //コールバックの待ち合わせ処理を考える
+                ItemBankAPI.takeItemAmount(uuid,uuid,item,tradeAmount){
 
-                        if (it==null){
-                            msg(p,"§c§lアイテムの数が足りません")
-                            return@takeItemAmount
-                        }
-                        asyncTradeOrder(firstOrder.orderID,lot)
-
-                        bankAPI.deposit(uuid,(lot*firstOrder.price),"Man10MarketSell","マーケット成行売り")
-
-                        msg(p,"§e§l${lot}個売却")
+                    if (it== null){
+                        msg(p,"§c§lアイテムバンクの在庫が足りません！")
+                        return@takeItemAmount
                     }
 
-                    return@add
-                }
-
-                //指値が要求個数以下の場合(注文が通ればこの指値は消える)
-
-                //指値の注文数
-                val orderLot = firstOrder.lot
-
-                suspend {
-
-                    require = suspendCoroutine {continuation->
-
-                        ItemBankAPI.takeItemAmount(uuid,uuid,item,orderLot){
-
-                            if (it==null){
-                                msg(p,"§c§lアイテムの数が足りません")
-                                return@takeItemAmount
-                            }
-
-                            asyncTradeOrder(firstOrder.orderID,orderLot)
-                            bankAPI.deposit(uuid,(orderLot*firstOrder.price),"Man10MarketSell","マーケット成行売り")
-
-                            msg(p,"§e§l${orderLot}個購入")
-
-                            continuation.resume(require-orderLot)
-                        }
+                    if (asyncTradeOrder(firstOrder.orderID,tradeAmount) == null){
+                        Bukkit.getLogger().info("ErrorModifyOrder")
+                        return@takeItemAmount
                     }
-                }
+                    bankAPI.deposit(uuid,tradeAmount*firstOrder.price,"Man10MarketSell","マーケット成行売り")
 
-                continue
+                    remainAmount -= tradeAmount
+
+                    msg(p,"§e§l${tradeAmount}個売却")
+
+                }
             }
-
-
         }
 
     }

@@ -35,6 +35,49 @@ object Command :CommandExecutor{
                 return true
             }
 
+            "marketbuy" ->{
+
+                if (sender !is Player)return false
+                if (!sender.hasPermission(USER))return false
+
+                if (args.size!=3){
+                    msg(sender,"§c§l/mce marketbuy <銘柄名> <個数>")
+                    return true
+                }
+
+                val item = args[1]
+                val lot = args[2].toIntOrNull()
+
+                if (lot==null){
+                    msg(sender,"§c§l個数は数字で入力してください")
+                    return true
+                }
+
+                Market.sendMarketBuy(sender.uniqueId,item,lot)
+
+            }
+
+            "marketsell" ->{
+
+                if (sender !is Player)return false
+                if (!sender.hasPermission(USER))return false
+
+                if (args.size!=3){
+                    msg(sender,"§c§l/mce marketsell <銘柄名> <個数>")
+                    return true
+                }
+
+                val item = args[1]
+                val lot = args[2].toIntOrNull()
+
+                if (lot==null){
+                    msg(sender,"§c§l個数は数字で入力してください")
+                    return true
+                }
+
+                Market.sendMarketSell(sender.uniqueId,item,lot)
+            }
+
             "orderbuy" ->{
 
                 if (sender !is Player)return false
