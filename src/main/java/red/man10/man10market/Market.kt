@@ -59,6 +59,9 @@ object Market {
     private fun asyncLogTick(item:String,volume: Int){
 
         val price = asyncGetPrice(item)?:return
+
+        ItemBankAPI.setItemPrice(item,price.bid,price.ask)
+
         mysql.execute("INSERT INTO tick_table (item_id, date, bid, ask, volume) " +
                 "VALUES ('${item}', DEFAULT, ${price.bid}, ${price.ask}, $volume)")
     }
@@ -107,7 +110,13 @@ object Market {
 
             val p = Bukkit.getPlayer(uuid)
 
+            if (lot<=0){
+                msg(p,"§c§l最低注文個数は1個です")
+                return@add
+            }
+
             if (!isMarketItem(item)){
+                msg(p,"§c§l存在しないアイテムです")
                 return@add
             }
 
@@ -164,7 +173,13 @@ object Market {
 
             val p = Bukkit.getPlayer(uuid)
 
+            if (lot<=0){
+                msg(p,"§c§l最低注文個数は1個です")
+                return@add
+            }
+
             if (!isMarketItem(item)){
+                msg(p,"§c§l存在しないアイテムです")
                 return@add
             }
 
@@ -233,13 +248,11 @@ object Market {
 
             if (lot<=0){
                 msg(p.player,"§c§l注文数を1個以上にしてください")
-
                 return@add
             }
 
             if (price<=0.0){
                 msg(p.player,"§c§l値段を1円以上にしてください")
-
                 return@add
             }
 
@@ -290,13 +303,11 @@ object Market {
 
             if (lot<=0){
                 msg(p.player,"§c§l注文数を1個以上にしてください")
-
                 return@add
             }
 
             if (price<=0.0){
                 msg(p.player,"§c§l値段を1円以上にしてください")
-
                 return@add
             }
 
@@ -304,14 +315,17 @@ object Market {
 
             if (nowPrice == null){
                 msg(p.player,"§c§l登録されていないアイテムです")
-
                 return@add
             }
 
             //買値より安い指値を入れれない
             if (price<nowPrice.bid){
                 msg(p.player,"§c§l買値より高い値段に設定してください")
+                return@add
+            }
 
+            if (price>nowPrice.bid*10 && nowPrice.ask>=Double.MAX_VALUE){
+                msg(p.player,"§c§l売り注文がない状態で買値の10倍以上の価格は注文できません")
                 return@add
             }
 
