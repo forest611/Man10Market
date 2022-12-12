@@ -20,7 +20,7 @@ object Market {
 
     private val transactionQueue = LinkedBlockingQueue<()->Unit>()
     private var transactionThread = Thread{ transaction() }
-    private val mysql = MySQLManager(Man10Market.instance,"Man10MarketQueue")
+    private val mysql = MySQLManager(instance,"Man10MarketQueue")
 
     init {
         runTransactionQueue()
@@ -55,6 +55,13 @@ object Market {
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
         return PriceData(item,ask,bid)
+    }
+
+    private fun asyncLogTick(item:String){
+
+        val price = asyncGetPrice(item)?:return
+        mysql.execute("INSERT INTO tick_table (item_id, date, bid, ask) " +
+                "VALUES ('${item}', DEFAULT, ${price.bid}, ${price.ask})")
     }
 
     //指値注文を取得する
@@ -264,6 +271,8 @@ object Market {
             mysql.execute("INSERT INTO order_table (player, uuid, item_id, price, buy, sell, lot, entry_date) " +
                     "VALUES ('${p.name}', '${uuid}', '${item}', ${fixedPrice}, 1, 0, ${lot}, DEFAULT)")
 
+            if (fixedPrice>nowPrice.bid){ asyncLogTick(item) }
+
             msg(p.player,"§b§l指値買§e§lを発注しました")
         }
 
@@ -317,6 +326,8 @@ object Market {
                 mysql.execute("INSERT INTO order_table (player, uuid, item_id, price, buy, sell, lot, entry_date) " +
                         "VALUES ('${p.name}', '${uuid}', '${item}', ${fixedPrice}, 0, 1, ${lot}, DEFAULT)")
 
+                if (fixedPrice<nowPrice.ask){ asyncLogTick(item) }
+
                 msg(p.player,"§c§l指値売§e§lを発注しました")
             }
         }
@@ -357,6 +368,7 @@ object Market {
 
         if (newAmount==0){
             mysql.execute("DELETE from order_table where id = ${id};")
+            asyncLogTick(data.item)
         }else{
             mysql.execute("UPDATE order_table SET lot = $newAmount WHERE id = ${id};")
 
