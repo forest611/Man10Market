@@ -1,7 +1,6 @@
 package red.man10.man10market
 
 import org.bukkit.Bukkit
-import org.bukkit.entity.Item
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Man10Market.Companion.bankAPI
@@ -336,7 +335,52 @@ object Market {
 
 
     //指値の削除
-    fun cancelOrder(uuid: UUID,id:Int){
+    fun cancelOrder(uuid: UUID?, id:Int){
+
+        transactionQueue.add {
+
+            val rs = mysql.query("select * from order_table where id = $id;")
+
+            if (rs==null || !rs.next()){
+                return@add
+            }
+
+            val data = OrderData(
+                UUID.fromString(rs.getString("uuid")),
+                rs.getInt("id"),
+                rs.getString("item_id"),
+                rs.getDouble("price"),
+                rs.getInt("lot"),
+                rs.getInt("buy")==1,
+                rs.getInt("sell")==1,
+                rs.getDate("entry_date")
+            )
+
+            rs.close()
+            mysql.close()
+
+            if (uuid!=null && uuid!=data.uuid)
+                return@add
+
+            //買い注文のキャンセル
+            if (data.buy){
+                bankAPI.deposit(data.uuid,(data.lot*data.price),"CancelMarketOrderBuy","マーケット指値買いキャンセル")
+            }
+
+            if (data.sell){
+                ItemBankAPI.addItemAmount(data.uuid,data.uuid,data.item,data.lot)
+            }
+
+            val lastPrice = asyncGetPrice(data.item)!!
+            mysql.execute("DELETE from order_table where id = ${id};")
+            val nowPrice = asyncGetPrice(data.item)!!
+
+            //キャンセルによって価格変更が起きた場合は、Tickとしてカウントする
+            if (lastPrice.ask != nowPrice.ask || lastPrice.bid != nowPrice.bid){
+                asyncLogTick(data.item)
+            }
+        }
+
 
     }
 
@@ -359,6 +403,9 @@ object Market {
             rs.getInt("sell")==1,
             rs.getDate("entry_date")
         )
+
+        rs.close()
+        mysql.close()
 
         val newAmount = data.lot - amount
 

@@ -11,11 +11,16 @@ import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import red.man10.man10market.Util.prefix
 import red.man10.man10market.menu.MainMenu
+import java.text.SimpleDateFormat
+import java.util.UUID
 
 object Command :CommandExecutor{
 
-    const val OP = "man10market.op"
+    private const val OP = "man10market.op"
     private const val USER = "man10market.user"
+    private val sdf = SimpleDateFormat("yyyy-MM-dd mm:ss")
+
+
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
 
         if (args.isEmpty()){
@@ -143,22 +148,45 @@ object Command :CommandExecutor{
                 return true
             }
 
+            "ordercancel" ->{
+                if (sender !is Player)return false
+                if (!sender.hasPermission(USER))return false
+
+                if (args.size!=2){
+                    msg(sender,"§c§l/mce ordercancel <注文ID>")
+                    return true
+                }
+
+                val id = args[1].toIntOrNull()
+
+                if (id == null){
+                    msg(sender,"§c§lIDを数字で入力してください")
+                    return true
+                }
+
+                val uuid : UUID? = if (sender.hasPermission(OP)) null else sender.uniqueId
+
+                Market.cancelOrder(uuid,id)
+
+                return true
+            }
+
         }
 
         return false
     }
 
-    fun showOrderBook(p:Player,item:String){
+    private fun showOrderBook(p:Player, item:String){
 
-        Market.getOrderList(item){
+        Market.getOrderList(item){order->
 
-            if (it==null){
+            if (order==null){
                 msg(p,"存在しない銘柄です")
                 return@getOrderList
             }
 
-            val sell = it.filter { f -> f.sell }.groupBy { g -> g.price }.toMutableMap()
-            val buy = it.filter { f -> f.buy }.groupBy { g -> g.price }.toMutableMap()
+            val sell = order.filter { f -> f.sell }.groupBy { g -> g.price }.toMutableMap()
+            val buy = order.filter { f -> f.buy }.groupBy { g -> g.price }.toMutableMap()
 
             var showMarketBuy = false
             var showMarketSell = false
@@ -198,8 +226,8 @@ object Command :CommandExecutor{
                 showMarketSell = true
             }
 
-            val totalBuy = it.filter { f->f.buy }.sumOf { s->s.lot }
-            val totalSell = it.filter { f->f.sell }.sumOf { s->s.lot }
+            val totalBuy = order.filter { f->f.buy }.sumOf { s->s.lot }
+            val totalSell = order.filter { f->f.sell }.sumOf { s->s.lot }
 
             msg(p,"§f成り行き注文(現在価格で取引をする)")
             if (showMarketSell){
@@ -220,6 +248,20 @@ object Command :CommandExecutor{
             p.sendMessage(text("$prefix   §c§n[指値買い注文]")
                 .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
                 .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>"))))
+
+            val yourOrder = order.filter { it.uuid==p.uniqueId }
+
+            if (yourOrder.isEmpty())
+                return@getOrderList
+            msg(p,"§b§l==========[ 指値注文 ]==========")
+
+            yourOrder.forEach {
+                val color = if (it.buy) "§a§l買" else "§c§l売"
+                val info = text("$prefix$color 単価:${format(it.price)} 個数:${it.lot}")
+                    .hoverEvent(HoverEvent.showText(text("§a§l注文日時:${sdf.format(it.date)}")))
+                val cancel = text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
+                p.sendMessage(info.append(cancel))
+            }
 
 
         }
