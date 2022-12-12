@@ -9,6 +9,8 @@ class Man10Market : JavaPlugin() {
     companion object{
         lateinit var instance : Man10Market
         lateinit var bankAPI: BankAPI
+
+        var isMarketOpen = false
     }
 
 
@@ -23,10 +25,28 @@ class Man10Market : JavaPlugin() {
         getCommand("mce")!!.setExecutor(Command)
 
         MappRenderer.setup(this)
+
+        loadMarketConfig()
     }
 
     override fun onDisable() {
         // Plugin shutdown logic
         Market.interruptTransactionQueue()
+        saveMarketConfig()
+    }
+
+    fun loadMarketConfig(){
+
+        reloadConfig()
+
+        isMarketOpen = config.getBoolean("MarketOpen",false)
+
+    }
+
+    fun saveMarketConfig(){
+
+        config.set("MarketOpen", isMarketOpen)
+
+        saveConfig()
     }
 }

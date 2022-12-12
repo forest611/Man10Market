@@ -3,10 +3,13 @@ package red.man10.man10market
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
+import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import red.man10.man10market.Man10Market.Companion.instance
+import red.man10.man10market.Man10Market.Companion.isMarketOpen
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import red.man10.man10market.Util.prefix
@@ -23,6 +26,11 @@ object Command :CommandExecutor{
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
 
+        if (!Man10Market.isMarketOpen && !sender.hasPermission(OP)){
+            msg(sender as Player,"§c§l現在取引所は閉場しております")
+            return true
+        }
+
         if (args.isEmpty()){
             if (sender !is Player)return false
             if (!sender.hasPermission(USER))return false
@@ -31,6 +39,59 @@ object Command :CommandExecutor{
         }
 
         when(args[0]){
+
+            "op" ->{
+
+                if (!sender.hasPermission(OP))return false
+
+                //OPヘルプ
+                if (args.size==1){
+
+                    sender.sendMessage("§l/mce op reload : Reload market system.")
+                    sender.sendMessage("§l/mce op on : Open market to public.")
+                    sender.sendMessage("§l/mce op off : Close market to public.")
+
+                    return true
+                }
+
+                when(args[1]){
+
+                    "reload" ->{
+
+                        sender.sendMessage("§l市場システムのリロード開始")
+
+                        isMarketOpen = false
+
+                        Market.interruptTransactionQueue()
+                        sender.sendMessage("§l注文執行システムの停止")
+
+                        instance.loadMarketConfig()
+                        sender.sendMessage("§lConfigの読み込み完了")
+
+                        Market.runTransactionQueue()
+                        sender.sendMessage("§l注文執行システムの再開")
+
+                        isMarketOpen = true
+
+                        sender.sendMessage("§l市場システムのリロード完了")
+
+                        return true
+                    }
+
+                    "off" ->{
+                        sender.sendMessage("§l市場クローズ")
+                        isMarketOpen = false
+                    }
+
+                    "on" ->{
+                        sender.sendMessage("§l市場オープン")
+                        isMarketOpen = true
+                    }
+
+
+                }
+
+            }
 
             "price" ->{
 
