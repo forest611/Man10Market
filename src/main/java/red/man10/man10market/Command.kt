@@ -18,7 +18,7 @@ object Command :CommandExecutor{
 
     private const val OP = "man10market.op"
     private const val USER = "man10market.user"
-    private val sdf = SimpleDateFormat("yyyy-MM-dd mm:ss")
+    private val sdf = SimpleDateFormat("yyyy-MM-dd hh:mm")
 
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
@@ -248,6 +248,20 @@ object Command :CommandExecutor{
             p.sendMessage(text("$prefix   §c§n[指値買い注文]")
                 .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
                 .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>"))))
+
+
+            val yesterday = MarketData.getYesterdayOHLC(item)
+            val percentage = MarketData.getPercentageChange(item)
+
+            p.sendMessage(text("$prefix§a§l前日終値:${format(yesterday.close)}")
+                .hoverEvent(HoverEvent.showText(text(
+                    "§d§l始値:${format(yesterday.open)}\n" +
+                            "§d§l高値:${format(yesterday.high)}\n" +
+                            "§d§l安値:${format(yesterday.low)}\n" +
+                            "§d§l終値:${format(yesterday.close)}\n" +
+                            "§d§l出来高:${yesterday.volume}個\n" +
+                            "§b§l前日比:${if (percentage>0.0) "§a§l" else if(percentage<0.0) "§c§l" else "§f§l"}${format(percentage,2)}%"))))
+
 
             val yourOrder = order.filter { it.uuid==p.uniqueId }
 

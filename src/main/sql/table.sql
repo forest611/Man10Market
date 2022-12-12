@@ -23,6 +23,7 @@ create table tick_table
     date    datetime default now() not null,
     bid     double                 null,
     ask     double                 null,
+    volume  int                    null,
     constraint tick_table_pk
         primary key (id)
 );

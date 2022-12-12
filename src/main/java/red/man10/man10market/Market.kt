@@ -56,11 +56,11 @@ object Market {
         return PriceData(item,ask,bid)
     }
 
-    private fun asyncLogTick(item:String){
+    private fun asyncLogTick(item:String,volume: Int){
 
         val price = asyncGetPrice(item)?:return
-        mysql.execute("INSERT INTO tick_table (item_id, date, bid, ask) " +
-                "VALUES ('${item}', DEFAULT, ${price.bid}, ${price.ask})")
+        mysql.execute("INSERT INTO tick_table (item_id, date, bid, ask, volume) " +
+                "VALUES ('${item}', DEFAULT, ${price.bid}, ${price.ask}, $volume)")
     }
 
     //指値注文を取得する
@@ -270,7 +270,7 @@ object Market {
             mysql.execute("INSERT INTO order_table (player, uuid, item_id, price, buy, sell, lot, entry_date) " +
                     "VALUES ('${p.name}', '${uuid}', '${item}', ${fixedPrice}, 1, 0, ${lot}, DEFAULT)")
 
-            if (fixedPrice>nowPrice.bid){ asyncLogTick(item) }
+            if (fixedPrice>nowPrice.bid){ asyncLogTick(item,0) }
 
             msg(p.player,"§b§l指値買§e§lを発注しました")
         }
@@ -325,7 +325,7 @@ object Market {
                 mysql.execute("INSERT INTO order_table (player, uuid, item_id, price, buy, sell, lot, entry_date) " +
                         "VALUES ('${p.name}', '${uuid}', '${item}', ${fixedPrice}, 0, 1, ${lot}, DEFAULT)")
 
-                if (fixedPrice<nowPrice.ask){ asyncLogTick(item) }
+                if (fixedPrice<nowPrice.ask){ asyncLogTick(item,0) }
 
                 msg(p.player,"§c§l指値売§e§lを発注しました")
             }
@@ -377,7 +377,7 @@ object Market {
 
             //キャンセルによって価格変更が起きた場合は、Tickとしてカウントする
             if (lastPrice.ask != nowPrice.ask || lastPrice.bid != nowPrice.bid){
-                asyncLogTick(data.item)
+                asyncLogTick(data.item,0)
             }
         }
 
@@ -413,9 +413,10 @@ object Market {
             return -1
         }
 
+        asyncLogTick(data.item,amount)
+
         if (newAmount==0){
             mysql.execute("DELETE from order_table where id = ${id};")
-            asyncLogTick(data.item)
         }else{
             mysql.execute("UPDATE order_table SET lot = $newAmount WHERE id = ${id};")
 

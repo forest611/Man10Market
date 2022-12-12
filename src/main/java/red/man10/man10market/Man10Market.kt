@@ -27,5 +27,6 @@ class Man10Market : JavaPlugin() {
 
     override fun onDisable() {
         // Plugin shutdown logic
+        Market.interruptTransactionQueue()
     }
 }
