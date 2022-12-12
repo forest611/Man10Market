@@ -1,6 +1,7 @@
 package red.man10.man10market
 
 import org.bukkit.Bukkit
+import red.man10.man10bank.Bank
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Man10Market.Companion.bankAPI
@@ -102,6 +103,49 @@ object Market {
     fun getOrderList(item: String,callback:(List<OrderData>?)->Unit){
         transactionQueue.add { callback.invoke(asyncGetOrderList(item)) }
     }
+
+    fun getUserOrderList(uuid: UUID,callback:(List<OrderData>)->Unit){
+
+        transactionQueue.add {
+
+            val rs = mysql.query("select * from order_table where uuid='${uuid}';")
+
+            val list = mutableListOf<OrderData>()
+
+            if (rs == null){
+                callback.invoke(list)
+                return@add
+            }
+
+            while (rs.next()){
+
+                val data = OrderData(
+                    uuid,
+                    rs.getInt("id"),
+                    rs.getString("item_id"),
+                    rs.getDouble("price"),
+                    rs.getInt("lot"),
+                    rs.getInt("buy")==1,
+                    rs.getInt("sell")==1,
+                    rs.getDate("entry_date")
+                )
+
+                list.add(data)
+            }
+
+            rs.close()
+            mysql.close()
+
+            callback.invoke(list)
+        }
+    }
+
+    fun getUserOrderList(mcid:String,callback:(List<OrderData>)->Unit){
+
+        val uuid = Bank.getUUID(mcid)?:return
+        getUserOrderList(uuid,callback)
+    }
+
 
     //成り行き注文
     fun sendMarketBuy(uuid:UUID,item:String,lot: Int,sendInventory:Boolean = false){

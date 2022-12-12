@@ -50,6 +50,7 @@ object Command :CommandExecutor{
                     sender.sendMessage("§l/mce op reload : Reload market system.")
                     sender.sendMessage("§l/mce op on : Open market to public.")
                     sender.sendMessage("§l/mce op off : Close market to public.")
+                    sender.sendMessage("§l/mce showorder <mcid> : Show orders you select.")
 
                     return true
                 }
@@ -86,6 +87,28 @@ object Command :CommandExecutor{
                     "on" ->{
                         sender.sendMessage("§l市場オープン")
                         isMarketOpen = true
+                    }
+
+                    "showorder" ->{
+
+                        Market.getUserOrderList(args[2]){orders->
+
+                            orders.forEach {
+                                val color = if (it.buy) "§a§l買" else "§c§l売"
+                                val info = text("$prefix$color 単価:${format(it.price)} 個数:${it.lot}")
+                                    .hoverEvent(HoverEvent.showText(text("§a§l注文日時:${sdf.format(it.date)}")))
+                                val cancel = text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
+                                sender.sendMessage(info.append(cancel))
+                            }
+
+                            val totalBuy = orders.filter { it.buy }.sumOf { it.price*it.lot }
+                            val totalSell = orders.filter { it.sell }.sumOf { it.price*it.lot }
+
+                            sender.sendMessage("§l指値買い総額:${format(totalBuy)}")
+                            sender.sendMessage("§l指値売り総額:${format(totalSell)}")
+                        }
+
+                        return true
                     }
 
 
@@ -231,6 +254,32 @@ object Command :CommandExecutor{
 
                 return true
             }
+
+            "showorder" ->{
+                if (sender !is Player)return false
+                if (!sender.hasPermission(USER))return false
+
+                Market.getUserOrderList(sender.uniqueId){orders->
+
+                    orders.forEach {
+                        val color = if (it.buy) "§a§l買" else "§c§l売"
+                        val info = text("$prefix$color 単価:${format(it.price)} 個数:${it.lot}")
+                            .hoverEvent(HoverEvent.showText(text("§a§l注文日時:${sdf.format(it.date)}")))
+                        val cancel = text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
+                        sender.sendMessage(info.append(cancel))
+                    }
+
+                    val totalBuy = orders.filter { it.buy }.sumOf { it.price*it.lot }
+                    val totalSell = orders.filter { it.sell }.sumOf { it.price*it.lot }
+
+                    msg(sender,"=============================")
+                    msg(sender,"§c指値買い総額(注文をとってる金額):§l${format(totalBuy)}円")
+                    msg(sender,"§a指値売り総額(売れたらもらえる総額):§l${format(totalSell)}円")
+                }
+
+                return true
+            }
+
 
         }
 
