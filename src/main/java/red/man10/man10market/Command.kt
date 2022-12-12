@@ -1,11 +1,17 @@
 package red.man10.man10market
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
+import red.man10.man10market.Util.prefix
 
 object Command :CommandExecutor{
 
@@ -153,9 +159,11 @@ object Command :CommandExecutor{
             val sell = it.filter { f -> f.sell }.groupBy { g -> g.price }.toMutableMap()
             val buy = it.filter { f -> f.buy }.groupBy { g -> g.price }.toMutableMap()
 
+            var showMarketBuy = false
+            var showMarketSell = false
+
             msg(p,"§a§l==========[ 注文状況: $item ]==========")
             msg(p,String.format("§b§l%5s    %5s    %5s","売数量" ,"値段","買数量"))
-
 
             if (sell.isEmpty()){
                 msg(p,String.format("§a§l%8s    %4s","","売注文なし"))
@@ -168,6 +176,8 @@ object Command :CommandExecutor{
                     val color = if (orderPrice == prices.last()) "§a§l" else "§e§l"
                     msg(p,String.format("${color}%8d    %8s",lot,format(orderPrice)))
                 }
+
+                showMarketBuy = true
             }
 
             if (buy.isEmpty()){
@@ -183,7 +193,32 @@ object Command :CommandExecutor{
 
                     msg(p,String.format("$color           %8s    %8d",format(orderPrice),lot))
                 }
+
+                showMarketSell = true
             }
+
+            val totalBuy = it.filter { f->f.buy }.sumOf { s->s.lot }
+            val totalSell = it.filter { f->f.sell }.sumOf { s->s.lot }
+
+            msg(p,"§f成り行き注文(現在価格で取引をする)")
+            if (showMarketSell){
+                p.sendMessage(text("$prefix   §a§n[成行売り注文]§f ${ totalBuy }個まで売却可能")
+                    .clickEvent(ClickEvent.suggestCommand("/mce marketsell $item "))
+                    .hoverEvent(HoverEvent.showText(text("§6§l/mce marketsell $item <個数>"))))
+            }
+            if (showMarketBuy){
+                p.sendMessage(text("$prefix   §c§n[成行買い注文]§f ${ totalSell }個まで購入可能")
+                    .clickEvent(ClickEvent.suggestCommand("/mce marketbuy $item "))
+                    .hoverEvent(HoverEvent.showText(text("§6§l/mce marketbuy $item <個数>"))))
+            }
+            msg(p,"§f指値注文(価格を指定して注文を予約する)")
+            p.sendMessage(text("$prefix   §a§n[指値売り注文]")
+                .clickEvent(ClickEvent.suggestCommand("/mce ordersell $item "))
+                .hoverEvent(HoverEvent.showText(text("§6§l/mce ordersell $item <購入単価> <個数>"))))
+
+            p.sendMessage(text("$prefix   §c§n[指値買い注文]")
+                .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
+                .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>"))))
 
 
         }
