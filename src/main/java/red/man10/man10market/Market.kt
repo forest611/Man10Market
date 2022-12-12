@@ -154,7 +154,14 @@ object Market {
                     val itemData = ItemBankAPI.getItemData(item)!!
                     val itemStack = itemData.item!!.clone()
                     itemStack.amount = lot
-                    Bukkit.getScheduler().runTask(instance, Runnable { p?.inventory?.addItem(itemStack) })
+
+                    if (p?.inventory?.firstEmpty() == -1){
+                        msg(p,"§cインベントリに空きがないため、アイテムバンクに収納しました")
+                        ItemBankAPI.addItemAmount(uuid,uuid,item,tradeAmount)
+                    }else{
+                        Bukkit.getScheduler().runTask(instance, Runnable { p?.inventory?.addItem(itemStack) })
+                    }
+
                 }else{
                     ItemBankAPI.addItemAmount(uuid,uuid,item,tradeAmount)
 
