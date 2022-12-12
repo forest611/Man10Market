@@ -50,7 +50,7 @@ object Market {
         val sell = list.filter { f -> f.sell }
         val buy = list.filter { f -> f.buy }
 
-        ask = if (sell.isEmpty()) 0.0 else sell.minOf { it.price }
+        ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
         return PriceData(item,ask,bid)
@@ -173,16 +173,19 @@ object Market {
                 //このループで取引する数量
                 val tradeAmount = if (firstOrder.lot>remainAmount) remainAmount else firstOrder.lot
 
-                //コールバックの待ち合わせ処理を考える
+                val lock = Lock()
+
                 ItemBankAPI.takeItemAmount(uuid,uuid,item,tradeAmount){
 
                     if (it== null){
                         msg(p,"§c§lアイテムバンクの在庫が足りません！")
+                        lock.unlock()
                         return@takeItemAmount
                     }
 
                     if (asyncTradeOrder(firstOrder.orderID,tradeAmount) == null){
                         Bukkit.getLogger().info("ErrorModifyOrder")
+                        lock.unlock()
                         return@takeItemAmount
                     }
                     bankAPI.deposit(uuid,tradeAmount*firstOrder.price,"Man10MarketSell","マーケット成行売り")
@@ -191,7 +194,10 @@ object Market {
 
                     msg(p,"§e§l${tradeAmount}個売却")
 
+                    lock.unlock()
                 }
+
+                lock.lock()
             }
         }
 
@@ -415,5 +421,30 @@ object Market {
         var bid:Double,
         var price :Double = ask+bid/2
     )
+
+    class Lock{
+
+        @Volatile
+        private  var isLock = false
+        @Volatile
+        private var hadLocked = false
+
+        fun lock(){
+            synchronized(this){
+                if (hadLocked){
+                    return
+                }
+                isLock = true
+            }
+            while (isLock){ Thread.sleep(1) }
+        }
+
+        fun unlock(){
+            synchronized(this){
+                hadLocked = true
+                isLock = false
+            }
+        }
+    }
 
 }
