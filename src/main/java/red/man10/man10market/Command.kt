@@ -252,16 +252,19 @@ object Command :CommandExecutor{
 
             val yesterday = MarketData.getYesterdayOHLC(item)
             val percentage = MarketData.getPercentageChange(item)
+            val percentageText = "§b§l前日比:${if (percentage > 0.0) "§a§l" else if (percentage < 0.0) "§c§l" else "§f§l"}${format(percentage, 2)}%"
 
-            p.sendMessage(text("$prefix§a§l前日終値:${format(yesterday.close)}")
+            msg(p,"")
+            p.sendMessage(text("$prefix$percentageText")
                 .hoverEvent(HoverEvent.showText(text(
-                    "§d§l始値:${format(yesterday.open)}\n" +
+                    "§d§l前日データ\n" +
+                            "§d§l始値:${format(yesterday.open)}\n" +
                             "§d§l高値:${format(yesterday.high)}\n" +
                             "§d§l安値:${format(yesterday.low)}\n" +
                             "§d§l終値:${format(yesterday.close)}\n" +
-                            "§d§l出来高:${yesterday.volume}個\n" +
-                            "§b§l前日比:${if (percentage>0.0) "§a§l" else if(percentage<0.0) "§c§l" else "§f§l"}${format(percentage,2)}%"))))
+                            "§d§l出来高:${yesterday.volume}個"))))
 
+            msg(p,"")
 
             val yourOrder = order.filter { it.uuid==p.uniqueId }
 
