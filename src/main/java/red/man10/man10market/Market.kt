@@ -1,9 +1,11 @@
 package red.man10.man10market
 
 import org.bukkit.Bukkit
+import org.bukkit.entity.Item
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Man10Market.Companion.bankAPI
+import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import java.util.*
@@ -26,7 +28,7 @@ object Market {
 
 
     //登録されているアイテムの識別名を取得
-    private fun getItemIndex(): List<String> {
+    fun getItemIndex(): List<String> {
         return ItemBankAPI.getItemIndexList()
     }
 
@@ -34,7 +36,6 @@ object Market {
     private fun isMarketItem(item: String):Boolean{
         return getItemIndex().contains(item)
     }
-
     //アイテムの現在価格(AskとBid)を取得する
     private fun asyncGetPrice(item:String): PriceData? {
 
@@ -94,7 +95,7 @@ object Market {
     }
 
     //成り行き注文
-    fun sendMarketBuy(uuid:UUID,item:String,lot: Int){
+    fun sendMarketBuy(uuid:UUID,item:String,lot: Int,sendInventory:Boolean = false){
 
         transactionQueue.add {
 
@@ -134,7 +135,15 @@ object Market {
                     continue
                 }
 
-                ItemBankAPI.addItemAmount(uuid,uuid,item,tradeAmount)
+                if (sendInventory){
+                    val itemData = ItemBankAPI.getItemData(item)!!
+                    val itemStack = itemData.item!!.clone()
+                    itemStack.amount = lot
+                    Bukkit.getScheduler().runTask(instance, Runnable { p?.inventory?.addItem(itemStack) })
+                }else{
+                    ItemBankAPI.addItemAmount(uuid,uuid,item,tradeAmount)
+
+                }
 
                 remainAmount -= tradeAmount
 
@@ -175,29 +184,30 @@ object Market {
 
                 val lock = Lock()
 
+                var result : Int? = null
+
                 ItemBankAPI.takeItemAmount(uuid,uuid,item,tradeAmount){
-
-                    if (it== null){
-                        msg(p,"§c§lアイテムバンクの在庫が足りません！")
-                        lock.unlock()
-                        return@takeItemAmount
-                    }
-
-                    if (asyncTradeOrder(firstOrder.orderID,tradeAmount) == null){
-                        Bukkit.getLogger().info("ErrorModifyOrder")
-                        lock.unlock()
-                        return@takeItemAmount
-                    }
-                    bankAPI.deposit(uuid,tradeAmount*firstOrder.price,"Man10MarketSell","マーケット成行売り")
-
-                    remainAmount -= tradeAmount
-
-                    msg(p,"§e§l${tradeAmount}個売却")
-
+                    result = it
                     lock.unlock()
                 }
 
                 lock.lock()
+
+                if (result == null){
+                    msg(p,"§c§lアイテムバンクの在庫が足りません！")
+                    return@add
+                }
+
+                if (asyncTradeOrder(firstOrder.orderID,tradeAmount) == null){
+                    Bukkit.getLogger().info("ErrorModifyOrder")
+                    return@add
+                }
+
+                bankAPI.deposit(uuid,tradeAmount*firstOrder.price,"Man10MarketSell","マーケット成行売り")
+
+                remainAmount -= tradeAmount
+
+                msg(p,"§e§l${tradeAmount}個売却")
             }
         }
 

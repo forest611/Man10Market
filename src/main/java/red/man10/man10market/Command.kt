@@ -1,6 +1,5 @@
 package red.man10.man10market
 
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -8,19 +7,21 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import red.man10.man10market.Util.prefix
+import red.man10.man10market.menu.MainMenu
 
 object Command :CommandExecutor{
 
-    const val OP = ""
-    const val USER = ""
+    const val OP = "man10market.op"
+    private const val USER = "man10market.user"
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
 
         if (args.isEmpty()){
-
+            if (sender !is Player)return false
+            if (!sender.hasPermission(USER))return false
+            MainMenu(sender,0).open()
             return true
         }
 
