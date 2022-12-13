@@ -272,9 +272,14 @@ object Command :CommandExecutor{
                     val totalBuy = orders.filter { it.buy }.sumOf { it.price*it.lot }
                     val totalSell = orders.filter { it.sell }.sumOf { it.price*it.lot }
 
+                    val estate = MarketData.getItemEstate(sender.uniqueId)
+
                     msg(sender,"=============================")
                     msg(sender,"§c指値買い総額(注文をとってる金額):§l${format(totalBuy)}円")
                     msg(sender,"§a指値売り総額(売れたらもらえる総額):§l${format(totalSell)}円")
+                    msg(sender,"")
+                    msg(sender,"§b§l所有アイテムの評価額:${format(estate)}円")
+
                 }
 
                 return true
@@ -361,7 +366,7 @@ object Command :CommandExecutor{
 
 
             val yesterday = MarketData.getYesterdayOHLC(item)
-            val percentage = MarketData.getPercentageChange(item)
+            val percentage = MarketData.getPercentageChange(item)*100
             val marketValue = MarketData.getMarketValue(item)
             val percentageText = "§b§l前日比:${if (percentage > 0.0) "§a§l" else if (percentage < 0.0) "§c§l" else "§f§l"}${format(percentage, 2)}%"
 

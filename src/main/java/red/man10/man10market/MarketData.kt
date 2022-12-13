@@ -5,6 +5,7 @@ import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.HashMap
 
 
 ///
@@ -22,21 +23,31 @@ object MarketData {
 
         val rs = mysql.query("select item_id,amount from item_storage where uuid='${uuid}';")?:return 0.0
 
-        val list = mutableListOf<Pair<Int,Int>>()
+        val map = HashMap<Int,Int>()
 
         while (rs.next()){
-            list.add(Pair(rs.getInt("item_id"),rs.getInt("amount")))
+            map[rs.getInt("item_id")] = rs.getInt("amount")
         }
 
         rs.close()
+        mysql.close()
+
+        val rs2 = mysql.query("select item_id,lot from order_table where uuid='${uuid}' and sell=1;")?:return 0.0
+
+        while (rs2.next()){
+            val id = ItemData.getID(rs2.getString("item_id"))
+            map[id] = (map[id]?:0) + rs2.getInt("lot")
+        }
+
+        rs2.close()
         mysql.close()
 
         val dataMap = ItemData.getItemIndexMap()
 
         var estate = 0.0
 
-        list.forEach{
-            estate += (dataMap[it.first]!!.bid * it.second)
+        map.forEach{
+            estate += (dataMap[it.key]!!.bid * it.value)
         }
 
         return estate

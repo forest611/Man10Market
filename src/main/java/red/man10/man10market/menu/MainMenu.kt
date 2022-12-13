@@ -7,7 +7,7 @@ import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10itembank.menu.MenuFramework
 import red.man10.man10market.Market
 
-class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"Man10中央取引所"){
+class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"§6§lMan10中央取引所"){
 
     init {
 
@@ -63,8 +63,15 @@ class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"Man10中央取引所"){
         }
 
         //Back
-        val back = Button(Material.LIGHT_BLUE_STAINED_GLASS_PANE)
-        back.title("")
+        val back = Button(Material.BLACK_STAINED_GLASS_PANE)
+        back.title("§b§lクリックして指値注文を見る")
+
+        back.setClickAction{
+            val clicked = it.whoClicked as Player
+            clicked.performCommand("mce showorder")
+            clicked.closeInventory()
+        }
+
         arrayOf(45,46,47,48,49,50,51,52,53).forEach { setButton(back,it) }
 
         //previous
