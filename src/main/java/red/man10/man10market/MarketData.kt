@@ -1,13 +1,82 @@
 package red.man10.man10market
 
 import red.man10.man10bank.MySQLManager
+import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import java.text.SimpleDateFormat
 import java.util.*
 
+
+///
+///mce mibのデータを取得
+///
 object MarketData {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
+
+
+    //ユーザーのアイテム資産の総額を見る
+    fun getItemEstate(uuid: UUID): Double {
+
+        val mysql = MySQLManager(instance,"Man10MarketData")
+
+        val rs = mysql.query("select item_id,amount from item_storage where uuid='${uuid}';")?:return 0.0
+
+        val list = mutableListOf<Pair<Int,Int>>()
+
+        while (rs.next()){
+            list.add(Pair(rs.getInt("item_id"),rs.getInt("amount")))
+        }
+
+        rs.close()
+        mysql.close()
+
+        val dataMap = ItemData.getItemIndexMap()
+
+        var estate = 0.0
+
+        list.forEach{
+            estate += (dataMap[it.first]!!.bid * it.second)
+        }
+
+        return estate
+    }
+
+    //時価総額を取得
+    fun getMarketValue(item:String):Double{
+
+        val mysql = MySQLManager(instance,"Man10MarketData")
+        val rs = mysql.query("select sum(amount) from item_storage where item_key='$item';")?:return  0.0
+
+        if (!rs.next()){
+            rs.close()
+            mysql.close()
+            return 0.0
+        }
+
+        var total = rs.getInt(1)
+
+        rs.close()
+        mysql.close()
+
+        val rs2 = mysql.query("select sum(lot) from order_table where item_id='$item' and sell=1;")?:return 0.0
+
+        if (!rs2.next()){
+            rs2.close()
+            mysql.close()
+            return 0.0
+        }
+
+        total += rs2.getInt(1)
+
+        rs2.close()
+        mysql.close()
+
+        val bid = ItemData.getItemIndexMap().values.firstOrNull { it.itemKey == item }?.bid ?:0.0
+
+        return bid*total
+
+    }
 
     //今日の(未確定)OHLCを見る
     fun getTodayOHLC(item:String):MarketSeries{
@@ -61,14 +130,14 @@ object MarketData {
         if (list.isEmpty())
             return MarketSeries()
 
-        return MarketSeries(list.first(),list.max(),list.min(),list.last(),volume,list.size)
+        return MarketSeries(list.first(),list.maxOf { it },list.minOf { it },list.last(),volume,list.size)
     }
 
     //騰落率
     fun getPercentageChange(item: String):Double{
 
         val yesterday = getYesterdayOHLC(item)
-        val today = getYesterdayOHLC(item)
+        val today = getTodayOHLC(item)
 
         if (yesterday.close == 0.0){
             return 0.0
