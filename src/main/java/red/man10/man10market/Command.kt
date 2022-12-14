@@ -17,7 +17,7 @@ import red.man10.man10market.menu.MainMenu
 import java.text.SimpleDateFormat
 import java.util.UUID
 
-object Command :CommandExecutor{
+object Command : CommandExecutor {
 
     private const val OP = "man10market.op"
     private const val USER = "man10market.user"
@@ -26,26 +26,26 @@ object Command :CommandExecutor{
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
 
-        if (!Man10Market.isMarketOpen && !sender.hasPermission(OP)){
-            msg(sender as Player,"§c§l現在取引所は閉場しております")
+        if (!Man10Market.isMarketOpen && !sender.hasPermission(OP)) {
+            msg(sender as Player, "§c§l現在取引所は閉場しております")
             return true
         }
 
-        if (args.isEmpty()){
-            if (sender !is Player)return false
-            if (!sender.hasPermission(USER))return false
-            MainMenu(sender,0).open()
+        if (args.isEmpty()) {
+            if (sender !is Player) return false
+            if (!sender.hasPermission(USER)) return false
+            MainMenu(sender, 0).open()
             return true
         }
 
-        when(args[0]){
+        when (args[0]) {
 
-            "op" ->{
+            "op" -> {
 
-                if (!sender.hasPermission(OP))return false
+                if (!sender.hasPermission(OP)) return false
 
                 //OPヘルプ
-                if (args.size==1){
+                if (args.size == 1) {
 
                     sender.sendMessage("§l/mce op reload : Reload market system.")
                     sender.sendMessage("§l/mce op on : Open market to public.")
@@ -55,9 +55,9 @@ object Command :CommandExecutor{
                     return true
                 }
 
-                when(args[1]){
+                when (args[1]) {
 
-                    "reload" ->{
+                    "reload" -> {
 
                         sender.sendMessage("§l市場システムのリロード開始")
 
@@ -79,30 +79,31 @@ object Command :CommandExecutor{
                         return true
                     }
 
-                    "off" ->{
+                    "off" -> {
                         sender.sendMessage("§l市場クローズ")
                         isMarketOpen = false
                     }
 
-                    "on" ->{
+                    "on" -> {
                         sender.sendMessage("§l市場オープン")
                         isMarketOpen = true
                     }
 
-                    "showorder" ->{
+                    "showorder" -> {
 
-                        Market.getUserOrderList(args[2]){orders->
+                        Market.getUserOrderList(args[2]) { orders ->
 
                             orders.forEach {
                                 val color = if (it.buy) "§a§l買" else "§c§l売"
                                 val info = text("$prefix$color 単価:${format(it.price)} 個数:${it.lot}")
                                     .hoverEvent(HoverEvent.showText(text("§a§l注文日時:${sdf.format(it.date)}")))
-                                val cancel = text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
+                                val cancel =
+                                    text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
                                 sender.sendMessage(info.append(cancel))
                             }
 
-                            val totalBuy = orders.filter { it.buy }.sumOf { it.price*it.lot }
-                            val totalSell = orders.filter { it.sell }.sumOf { it.price*it.lot }
+                            val totalBuy = orders.filter { it.buy }.sumOf { it.price * it.lot }
+                            val totalSell = orders.filter { it.sell }.sumOf { it.price * it.lot }
 
                             sender.sendMessage("§l指値買い総額:${format(totalBuy)}")
                             sender.sendMessage("§l指値売り総額:${format(totalSell)}")
@@ -116,71 +117,71 @@ object Command :CommandExecutor{
 
             }
 
-            "price" ->{
+            "price" -> {
 
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                if (args.size!=2){
-                    msg(sender,"§c§l/mce price <銘柄名>")
+                if (args.size != 2) {
+                    msg(sender, "§c§l/mce price <銘柄名>")
                     return true
                 }
 
-                showOrderBook(sender,args[1])
+                showOrderBook(sender, args[1])
 
                 return true
             }
 
-            "marketbuy" ->{
+            "marketbuy" -> {
 
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                if (args.size!=3){
-                    msg(sender,"§c§l/mce marketbuy <銘柄名> <個数>")
+                if (args.size != 3) {
+                    msg(sender, "§c§l/mce marketbuy <銘柄名> <個数>")
                     return true
                 }
 
                 val item = args[1]
                 val lot = args[2].toIntOrNull()
 
-                if (lot==null){
-                    msg(sender,"§c§l個数は数字で入力してください")
+                if (lot == null) {
+                    msg(sender, "§c§l個数は数字で入力してください")
                     return true
                 }
 
-                Market.sendMarketBuy(sender.uniqueId,item,lot)
+                Market.sendMarketBuy(sender.uniqueId, item, lot)
 
             }
 
-            "marketsell" ->{
+            "marketsell" -> {
 
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                if (args.size!=3){
-                    msg(sender,"§c§l/mce marketsell <銘柄名> <個数>")
+                if (args.size != 3) {
+                    msg(sender, "§c§l/mce marketsell <銘柄名> <個数>")
                     return true
                 }
 
                 val item = args[1]
                 val lot = args[2].toIntOrNull()
 
-                if (lot==null){
-                    msg(sender,"§c§l個数は数字で入力してください")
+                if (lot == null) {
+                    msg(sender, "§c§l個数は数字で入力してください")
                     return true
                 }
 
-                Market.sendMarketSell(sender.uniqueId,item,lot)
+                Market.sendMarketSell(sender.uniqueId, item, lot)
             }
 
-            "orderbuy" ->{
+            "orderbuy" -> {
 
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                if (args.size!=4){
-                    msg(sender,"§c§l/mce orderbuy <銘柄名> <単価> <個数>")
+                if (args.size != 4) {
+                    msg(sender, "§c§l/mce orderbuy <銘柄名> <単価> <個数>")
                     return true
                 }
 
@@ -188,28 +189,28 @@ object Command :CommandExecutor{
                 val price = args[2].toDoubleOrNull()
                 val lot = args[3].toIntOrNull()
 
-                if (price==null){
-                    msg(sender,"§c§l金額は数字で入力してください")
+                if (price == null) {
+                    msg(sender, "§c§l金額は数字で入力してください")
                     return true
                 }
 
-                if (lot==null){
-                    msg(sender,"§c§l個数は数字で入力してください")
+                if (lot == null) {
+                    msg(sender, "§c§l個数は数字で入力してください")
                     return true
                 }
 
-                Market.sendOrderBuy(sender.uniqueId,item,lot,price)
+                Market.sendOrderBuy(sender.uniqueId, item, lot, price)
 
                 return true
             }
 
-            "ordersell" ->{
+            "ordersell" -> {
 
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                if (args.size!=4){
-                    msg(sender,"§c§l/mce ordersell <銘柄名> <単価> <個数>")
+                if (args.size != 4) {
+                    msg(sender, "§c§l/mce ordersell <銘柄名> <単価> <個数>")
                     return true
                 }
 
@@ -217,68 +218,69 @@ object Command :CommandExecutor{
                 val price = args[2].toDoubleOrNull()
                 val lot = args[3].toIntOrNull()
 
-                if (price==null){
-                    msg(sender,"§c§l金額は数字で入力してください")
+                if (price == null) {
+                    msg(sender, "§c§l金額は数字で入力してください")
                     return true
                 }
 
-                if (lot==null){
-                    msg(sender,"§c§l個数は数字で入力してください")
+                if (lot == null) {
+                    msg(sender, "§c§l個数は数字で入力してください")
                     return true
                 }
 
-                Market.sendOrderSell(sender.uniqueId,item,lot,price)
+                Market.sendOrderSell(sender.uniqueId, item, lot, price)
 
                 return true
             }
 
-            "ordercancel" ->{
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+            "ordercancel" -> {
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                if (args.size!=2){
-                    msg(sender,"§c§l/mce ordercancel <注文ID>")
+                if (args.size != 2) {
+                    msg(sender, "§c§l/mce ordercancel <注文ID>")
                     return true
                 }
 
                 val id = args[1].toIntOrNull()
 
-                if (id == null){
-                    msg(sender,"§c§lIDを数字で入力してください")
+                if (id == null) {
+                    msg(sender, "§c§lIDを数字で入力してください")
                     return true
                 }
 
-                val uuid : UUID? = if (sender.hasPermission(OP)) null else sender.uniqueId
+                val uuid: UUID? = if (sender.hasPermission(OP)) null else sender.uniqueId
 
-                Market.cancelOrder(uuid,id)
+                Market.cancelOrder(uuid, id)
 
                 return true
             }
 
-            "showorder" ->{
-                if (sender !is Player)return false
-                if (!sender.hasPermission(USER))return false
+            "showorder" -> {
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) return false
 
-                Market.getUserOrderList(sender.uniqueId){orders->
+                Market.getUserOrderList(sender.uniqueId) { orders ->
 
                     orders.forEach {
                         val color = if (it.buy) "§a§l買" else "§c§l売"
                         val info = text("$prefix$color 単価:${format(it.price)} 個数:${it.lot}")
                             .hoverEvent(HoverEvent.showText(text("§a§l注文日時:${sdf.format(it.date)}")))
-                        val cancel = text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
+                        val cancel =
+                            text(" §f§l[X]").clickEvent(ClickEvent.runCommand("/mce ordercancel ${it.orderID}"))
                         sender.sendMessage(info.append(cancel))
                     }
 
-                    val totalBuy = orders.filter { it.buy }.sumOf { it.price*it.lot }
-                    val totalSell = orders.filter { it.sell }.sumOf { it.price*it.lot }
+                    val totalBuy = orders.filter { it.buy }.sumOf { it.price * it.lot }
+                    val totalSell = orders.filter { it.sell }.sumOf { it.price * it.lot }
 
                     val estate = MarketData.getItemEstate(sender.uniqueId)
 
-                    msg(sender,"=============================")
-                    msg(sender,"§c指値買い総額(注文をとってる金額):§l${format(totalBuy)}円")
-                    msg(sender,"§a指値売り総額(売れたらもらえる総額):§l${format(totalSell)}円")
-                    msg(sender,"")
-                    msg(sender,"§b§l所有アイテムの評価額:${format(estate)}円")
+                    msg(sender, "=============================")
+                    msg(sender, "§c指値買い総額(注文をとってる金額):§l${format(totalBuy)}円")
+                    msg(sender, "§a指値売り総額(売れたらもらえる総額):§l${format(totalSell)}円")
+                    msg(sender, "")
+                    msg(sender, "§b§l所有アイテムの評価額:${format(estate)}円")
 
                 }
 
@@ -291,12 +293,12 @@ object Command :CommandExecutor{
         return false
     }
 
-    private fun showOrderBook(p:Player, item:String){
+    private fun showOrderBook(p: Player, item: String) {
 
-        Market.getOrderList(item){order->
+        Market.getOrderList(item) { order ->
 
-            if (order==null){
-                msg(p,"存在しない銘柄です")
+            if (order == null) {
+                msg(p, "存在しない銘柄です")
                 return@getOrderList
             }
 
@@ -306,88 +308,109 @@ object Command :CommandExecutor{
             var showMarketBuy = false
             var showMarketSell = false
 
-            msg(p,"§a§l==========[ 注文状況: $item ]==========")
-            msg(p,String.format("§b§l%5s    %5s    %5s","売数量" ,"値段","買数量"))
+            msg(p, "§a§l==========[ 注文状況: $item ]==========")
+            msg(p, String.format("§b§l%5s    %5s    %5s", "売数量", "値段", "買数量"))
 
-            if (sell.isEmpty()){
-                msg(p,String.format("§a§l%8s    %4s","","売注文なし"))
-            }else{
+            if (sell.isEmpty()) {
+                msg(p, String.format("§a§l%8s    %4s", "", "売注文なし"))
+            } else {
 
                 val prices = sell.keys.sorted().reversed()
 
-                for (orderPrice in prices){
+                for (orderPrice in prices) {
                     val lot = sell[orderPrice]!!.sumOf { s -> s.lot }
                     val color = if (orderPrice == prices.last()) "§a§l" else "§e§l"
-                    msg(p,String.format("${color}%8d    %8s",lot,format(orderPrice)))
+                    msg(p, String.format("${color}%8d    %8s", lot, format(orderPrice)))
                 }
 
                 showMarketBuy = true
             }
 
-            if (buy.isEmpty()){
-                msg(p,String.format("§c§l           %4s    %8s","買注文なし",""))
-            }else{
+            if (buy.isEmpty()) {
+                msg(p, String.format("§c§l           %4s    %8s", "買注文なし", ""))
+            } else {
 
                 val prices = buy.keys.sorted().reversed()
 
-                for (orderPrice in prices){
+                for (orderPrice in prices) {
                     val lot = buy[orderPrice]!!.sumOf { s -> s.lot }
 
                     val color = if ((orderPrice == prices.first())) "§c§l" else "§e§l"
 
-                    msg(p,String.format("$color           %8s    %8d",format(orderPrice),lot))
+                    msg(p, String.format("$color           %8s    %8d", format(orderPrice), lot))
                 }
 
                 showMarketSell = true
             }
 
-            val totalBuy = order.filter { f->f.buy }.sumOf { s->s.lot }
-            val totalSell = order.filter { f->f.sell }.sumOf { s->s.lot }
+            val totalBuy = order.filter { f -> f.buy }.sumOf { s -> s.lot }
+            val totalSell = order.filter { f -> f.sell }.sumOf { s -> s.lot }
 
-            msg(p,"§f成り行き注文(現在価格で取引をする)")
-            if (showMarketSell){
-                p.sendMessage(text("$prefix   §a§n[成行売り注文]§f ${ totalBuy }個まで売却可能")
-                    .clickEvent(ClickEvent.suggestCommand("/mce marketsell $item "))
-                    .hoverEvent(HoverEvent.showText(text("§6§l/mce marketsell $item <個数>"))))
+            msg(p, "§f成り行き注文(現在価格で取引をする)")
+            if (showMarketSell) {
+                p.sendMessage(
+                    text("$prefix   §a§n[成行売り注文]§f ${totalBuy}個まで売却可能")
+                        .clickEvent(ClickEvent.suggestCommand("/mce marketsell $item "))
+                        .hoverEvent(HoverEvent.showText(text("§6§l/mce marketsell $item <個数>")))
+                )
             }
-            if (showMarketBuy){
-                p.sendMessage(text("$prefix   §c§n[成行買い注文]§f ${ totalSell }個まで購入可能")
-                    .clickEvent(ClickEvent.suggestCommand("/mce marketbuy $item "))
-                    .hoverEvent(HoverEvent.showText(text("§6§l/mce marketbuy $item <個数>"))))
+            if (showMarketBuy) {
+                p.sendMessage(
+                    text("$prefix   §c§n[成行買い注文]§f ${totalSell}個まで購入可能")
+                        .clickEvent(ClickEvent.suggestCommand("/mce marketbuy $item "))
+                        .hoverEvent(HoverEvent.showText(text("§6§l/mce marketbuy $item <個数>")))
+                )
             }
-            msg(p,"§f指値注文(価格を指定して注文を予約する)")
-            p.sendMessage(text("$prefix   §a§n[指値売り注文]")
-                .clickEvent(ClickEvent.suggestCommand("/mce ordersell $item "))
-                .hoverEvent(HoverEvent.showText(text("§6§l/mce ordersell $item <購入単価> <個数>"))))
+            msg(p, "§f指値注文(価格を指定して注文を予約する)")
+            p.sendMessage(
+                text("$prefix   §a§n[指値売り注文]")
+                    .clickEvent(ClickEvent.suggestCommand("/mce ordersell $item "))
+                    .hoverEvent(HoverEvent.showText(text("§6§l/mce ordersell $item <購入単価> <個数>")))
+            )
 
-            p.sendMessage(text("$prefix   §c§n[指値買い注文]")
-                .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
-                .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>"))))
+            p.sendMessage(
+                text("$prefix   §c§n[指値買い注文]")
+                    .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
+                    .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>")))
+            )
 
 
             val yesterday = MarketData.getYesterdayOHLC(item)
-            val percentage = MarketData.getPercentageChange(item)*100
+            val percentage = MarketData.getPercentageChange(item) * 100
             val marketValue = MarketData.getMarketValue(item)
-            val percentageText = "§b§l前日比:${if (percentage > 0.0) "§a§l" else if (percentage < 0.0) "§c§l" else "§f§l"}${format(percentage, 2)}%"
+            val percentageText =
+                "§b§l前日比:${if (percentage > 0.0) "§a§l" else if (percentage < 0.0) "§c§l" else "§f§l"}${
+                    format(
+                        percentage,
+                        2
+                    )
+                }%"
 
-            msg(p,"")
-            p.sendMessage(text("$prefix$percentageText")
-                .hoverEvent(HoverEvent.showText(text(
-                    "§e§l前日データ\n" +
-                            "§e§l始値:${format(yesterday.open)}\n" +
-                            "§e§l高値:${format(yesterday.high)}\n" +
-                            "§e§l安値:${format(yesterday.low)}\n" +
-                            "§e§l終値:${format(yesterday.close)}\n" +
-                            "§e§l出来高:${yesterday.volume}個\n" +
-                            "§e§l時価総額:${format(marketValue)}円"))))
+            msg(p, "")
+            p.sendMessage(
+                text("$prefix$percentageText")
+                    .hoverEvent(
+                        HoverEvent.showText(
+                            text(
+                                "§e§l前日データ\n" +
+                                        "§e§l始値:${format(yesterday.open)}\n" +
+                                        "§e§l高値:${format(yesterday.high)}\n" +
+                                        "§e§l安値:${format(yesterday.low)}\n" +
+                                        "§e§l終値:${format(yesterday.close)}\n" +
+                                        "§e§l出来高:${yesterday.volume}個\n" +
+                                        "§e§l時価総額:${format(marketValue)}円"
+                            )
+                        )
+                    )
+            )
 
-            msg(p,"")
+            msg(p, "")
 
-            val yourOrder = order.filter { it.uuid==p.uniqueId }
+            val yourOrder = order.filter { it.uuid == p.uniqueId }
 
             if (yourOrder.isEmpty())
                 return@getOrderList
-            msg(p,"§b§l==========[ 指値注文 ]==========")
+            msg(p, "§b§l==========[ 指値注文 ]==========")
 
             yourOrder.forEach {
                 val color = if (it.buy) "§a§l買" else "§c§l売"

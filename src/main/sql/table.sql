@@ -31,3 +31,17 @@ create table tick_table
 create index tick_table_item_id_index
     on tick_table (item_id);
 
+create table execution_log
+(
+    id       int auto_increment,
+    player   varchar(16)            null,
+    uuid     varchar(36)            null,
+    item_id  varchar(32)            null,
+    amount   int                    null,
+    price    double                 null,
+    exe_type varchar(16)            null,
+    datetime datetime default now() null,
+    constraint execution_log_pk
+        primary key (id)
+);
+

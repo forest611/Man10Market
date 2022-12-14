@@ -6,8 +6,8 @@ import red.man10.man10market.map.MappRenderer
 
 class Man10Market : JavaPlugin() {
 
-    companion object{
-        lateinit var instance : Man10Market
+    companion object {
+        lateinit var instance: Man10Market
         lateinit var bankAPI: BankAPI
 
         var isMarketOpen = false
@@ -35,15 +35,15 @@ class Man10Market : JavaPlugin() {
         saveMarketConfig()
     }
 
-    fun loadMarketConfig(){
+    fun loadMarketConfig() {
 
         reloadConfig()
 
-        isMarketOpen = config.getBoolean("MarketOpen",false)
+        isMarketOpen = config.getBoolean("MarketOpen", false)
 
     }
 
-    fun saveMarketConfig(){
+    fun saveMarketConfig() {
 
         config.set("MarketOpen", isMarketOpen)
 

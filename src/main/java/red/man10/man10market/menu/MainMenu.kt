@@ -2,11 +2,9 @@ package red.man10.man10market.menu
 
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.inventory.InventoryAction
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10itembank.menu.MenuFramework
 import red.man10.man10market.Market
-
 class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"§6§lMan10中央取引所"){
 
     init {
@@ -37,15 +35,16 @@ class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"§6§lMan10中央取引�
 
             button.lore(mutableListOf("§a§l左クリック:購入","§c§l右クリック:売却","§b§lシフト左クリック:高度な取引"))
 
+
+            //TODO:シフトクリックでアイテムが取り出せちゃう問題を治す
             button.setClickAction{e->
 
                 val clicked = e.whoClicked as Player
 
                 if (e.isShiftClick){
-                    clicked.closeInventory()
                     clicked.performCommand("mce price $item")
+                    clicked.closeInventory()
                     return@setClickAction
-
                 }
 
                 if (e.isLeftClick){
@@ -57,7 +56,6 @@ class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"§6§lMan10中央取引�
                     SellMenu(p).open()
                     return@setClickAction
                 }
-
             }
             menu.addItem(button.icon())
         }
