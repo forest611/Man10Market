@@ -332,8 +332,8 @@ object Market {
             }
 
             //売値より高い指値入れられない
-            if (price > nowPrice.ask) {
-                msg(p.player, "§c§l売値より安い値段に設定してください")
+            if (price >= nowPrice.ask) {
+                msg(p.player, "§c§l売値(${format(nowPrice.ask)}円)より安い値段に設定してください")
 
                 return@add
             }
@@ -392,8 +392,8 @@ object Market {
             }
 
             //買値より安い指値を入れれない
-            if (price < nowPrice.bid) {
-                msg(p.player, "§c§l買値より高い値段に設定してください")
+            if (price <= nowPrice.bid) {
+                msg(p.player, "§c§l買値(${format(nowPrice.bid)}円)より高い値段に設定してください")
                 return@add
             }
 
