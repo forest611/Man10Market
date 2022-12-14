@@ -57,7 +57,7 @@ class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "購入する") {
         var remainAmount = lot
         var requirePrice = 0.0
 
-        for (order in list) {
+        for (order in list.sortedBy { it.price }) {
 
             if (remainAmount <= 0)
                 return requirePrice

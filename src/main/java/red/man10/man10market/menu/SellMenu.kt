@@ -13,6 +13,7 @@ class SellMenu(p: Player) : MenuFramework(p, 54, "アイテムを売却する") 
     init {
         val putButton = Button(Material.RED_STAINED_GLASS_PANE)
         putButton.title("§c§l全て売却")
+        putButton.lore(mutableListOf("§c§l売却が失敗したアイテムは/mibに保存されます"))
 
         putButton.setClickAction { e ->
             sellItems(p, e.inventory)
