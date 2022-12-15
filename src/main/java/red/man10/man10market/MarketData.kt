@@ -1,13 +1,11 @@
 package red.man10.man10market
 
-import org.yaml.snakeyaml.error.Mark
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.HashMap
 
 
 ///
@@ -16,6 +14,8 @@ import kotlin.collections.HashMap
 object MarketData {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
+
+    //TODO:マーケット速報用の高値安値のデータ
 
     private val marketSeriesCache = ConcurrentHashMap<Pair<String,String>,MarketSeries>()
     private val marketValueCache = ConcurrentHashMap<String,Double>()
@@ -91,7 +91,7 @@ object MarketData {
         rs2.close()
         mysql.close()
 
-        val bid = Market.getPrice(item)?.bid?:return 0.0
+        val bid = Market.getPrice(item).bid
 
         marketValueCache[item] = bid * total
 
@@ -185,7 +185,7 @@ object MarketData {
     fun getPercentageChange(item: String): Double {
 
         val yesterday = getYesterdayOHLC(item).close
-        val today = Market.getPrice(item)?.bid?:return 0.0
+        val today = Market.getPrice(item).bid
 
         if (yesterday == 0.0) {
             return 0.0

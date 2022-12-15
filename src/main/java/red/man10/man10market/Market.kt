@@ -26,6 +26,8 @@ object Market {
 
     init {
         runTransactionQueue()
+        //アイテムごとの注文を一旦読み込む
+        getItemIndex().forEach { asyncGetOrderList(it) }
     }
 
 
@@ -39,10 +41,13 @@ object Market {
         return getItemIndex().contains(item)
     }
 
-    fun getPrice(item: String): PriceData? {
-        return priceCache[item]
+    fun getPrice(item: String): PriceData {
+        return priceCache[item]!!
     }
 
+
+    //TODO:価格変更を検知する仕組みなどを考える
+    //価格変更があったら呼び出す
     private fun asyncLogTick(item: String, volume: Int) {
 
         val ask: Double
@@ -60,21 +65,18 @@ object Market {
         ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
-        val price = PriceData(item, ask, bid)
-
-        ItemBankAPI.setItemPrice(item, price.bid, price.ask)
-        priceCache[item] = PriceData(item, price.bid, price.ask)
+        ItemBankAPI.setItemPrice(item, bid, ask)
 
         mysql.execute(
             "INSERT INTO tick_table (item_id, date, bid, ask, volume) " +
-                    "VALUES ('${item}', DEFAULT, ${price.bid}, ${price.ask}, $volume)"
+                    "VALUES ('${item}', DEFAULT, ${bid}, ${ask}, $volume)"
         )
     }
 
+    //取引があったら呼ぶ
     private fun asyncRecordLog(uuid: UUID, item: String, amount: Int, price: Double, type: String) {
 
         val p = Bukkit.getOfflinePlayer(uuid)
-
         mysql.execute(
             "INSERT INTO execution_log (player, uuid, item_id, amount, price, exe_type, datetime) " +
                     "VALUES ('${p.name}', '${uuid}', '$item', $amount, ${amount * price}, '${type}', DEFAULT)"
@@ -110,6 +112,15 @@ object Market {
 
         rs.close()
         mysql.close()
+
+        //価格をキャッシングしておく
+        val sell = list.filter { f -> f.sell }
+        val buy = list.filter { f -> f.buy }
+
+        val ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
+        val bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
+
+        priceCache[item] = PriceData(item, ask, bid)
 
         return list
     }
@@ -325,17 +336,9 @@ object Market {
             }
 
             val nowPrice = getPrice(item)
-
-            if (nowPrice == null) {
-                msg(p.player, "§c§l登録されていないアイテムです")
-
-                return@add
-            }
-
             //売値より高い指値入れられない
             if (price >= nowPrice.ask) {
                 msg(p.player, "§c§l売値(${format(nowPrice.ask)}円)より安い値段に設定してください")
-
                 return@add
             }
 
@@ -386,11 +389,6 @@ object Market {
             }
 
             val nowPrice = getPrice(item)
-
-            if (nowPrice == null) {
-                msg(p.player, "§c§l登録されていないアイテムです")
-                return@add
-            }
 
             //買値より安い指値を入れれない
             if (price <= nowPrice.bid) {
