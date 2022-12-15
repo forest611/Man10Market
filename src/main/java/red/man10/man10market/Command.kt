@@ -3,7 +3,6 @@ package red.man10.man10market
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
-import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -15,7 +14,7 @@ import red.man10.man10market.Util.msg
 import red.man10.man10market.Util.prefix
 import red.man10.man10market.menu.MainMenu
 import java.text.SimpleDateFormat
-import java.util.UUID
+import java.util.*
 
 object Command : CommandExecutor {
 
@@ -26,7 +25,7 @@ object Command : CommandExecutor {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
 
-        if (!Man10Market.isMarketOpen && !sender.hasPermission(OP)) {
+        if (!isMarketOpen && !sender.hasPermission(OP)) {
             msg(sender as Player, "§c§l現在取引所は閉場しております")
             return true
         }

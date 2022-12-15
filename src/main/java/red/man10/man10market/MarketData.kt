@@ -1,10 +1,12 @@
 package red.man10.man10market
 
+import org.yaml.snakeyaml.error.Mark
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.HashMap
 
 
@@ -15,6 +17,8 @@ object MarketData {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
 
+    private val marketSeriesCache = ConcurrentHashMap<Pair<String,String>,MarketSeries>()
+    private val marketValueCache = ConcurrentHashMap<String,Double>()
 
     //ユーザーのアイテム資産の総額を見る
     fun getItemEstate(uuid: UUID): Double {
@@ -56,6 +60,10 @@ object MarketData {
     //時価総額を取得
     fun getMarketValue(item: String): Double {
 
+        if (marketValueCache[item]!=null){
+            return marketValueCache[item]!!
+        }
+
         val mysql = MySQLManager(instance, "Man10MarketData")
         val rs = mysql.query("select sum(amount) from item_storage where item_key='$item';") ?: return 0.0
 
@@ -83,7 +91,9 @@ object MarketData {
         rs2.close()
         mysql.close()
 
-        val bid = ItemData.getItemIndexMap().values.firstOrNull { it.itemKey == item }?.bid ?: 0.0
+        val bid = Market.getPrice(item)?.bid?:return 0.0
+
+        marketValueCache[item] = bid * total
 
         return bid * total
 
@@ -92,10 +102,19 @@ object MarketData {
     //今日の(未確定)OHLCを見る
     fun getTodayOHLC(item: String): MarketSeries {
 
+        val dateString = sdf.format(Date())
+        val key = Pair(item,dateString)
+
+        //キャッシュがあるならそっちをとる
+        if (marketSeriesCache[key]!=null){
+            return marketSeriesCache[key]!!
+        }
+
+
         val mysql = MySQLManager(instance, "Man10MarketData")
         val rs = mysql.query(
             "select bid,volume from tick_table " +
-                    "where item_id='${item}' and date>'${sdf.format(Date())}';"
+                    "where item_id='${item}' and date>'${dateString}';"
         ) ?: return MarketSeries()
 
         val list = mutableListOf<Double>()
@@ -112,7 +131,10 @@ object MarketData {
         if (list.isEmpty())
             return MarketSeries()
 
-        return MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
+        val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
+        marketSeriesCache[key] = ret
+
+        return ret
     }
 
     fun getYesterdayOHLC(item: String): MarketSeries {
@@ -124,6 +146,14 @@ object MarketData {
         calender.set(Calendar.MINUTE, 0)
 
         val yesterday = calender.time
+
+        val key = Pair(item,sdf.format(yesterday))
+
+        //キャッシュがあるならそっちをとる
+        if (marketSeriesCache[key]!=null){
+            return marketSeriesCache[key]!!
+        }
+
 
         val mysql = MySQLManager(instance, "Man10MarketData")
         val rs = mysql.query(
@@ -145,20 +175,23 @@ object MarketData {
         if (list.isEmpty())
             return MarketSeries()
 
-        return MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
+        val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
+        marketSeriesCache[key] = ret
+
+        return ret
     }
 
     //騰落率
     fun getPercentageChange(item: String): Double {
 
-        val yesterday = getYesterdayOHLC(item)
-        val today = getTodayOHLC(item)
+        val yesterday = getYesterdayOHLC(item).close
+        val today = Market.getPrice(item)?.bid?:return 0.0
 
-        if (yesterday.close == 0.0) {
+        if (yesterday == 0.0) {
             return 0.0
         }
 
-        return ((today.close / yesterday.close) - 1)
+        return ((today / yesterday) - 1)
     }
 
     data class MarketSeries(

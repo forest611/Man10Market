@@ -9,6 +9,7 @@ import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.math.floor
 
@@ -20,6 +21,7 @@ object Market {
 
     private val transactionQueue = LinkedBlockingQueue<() -> Unit>()
     private var transactionThread = Thread { transaction() }
+    private val priceCache = ConcurrentHashMap<String,PriceData>()
     private val mysql = MySQLManager(instance, "Man10MarketQueue")
 
     init {
@@ -37,16 +39,19 @@ object Market {
         return getItemIndex().contains(item)
     }
 
-    //アイテムの現在価格(AskとBid)を取得する
-    private fun asyncGetPrice(item: String): PriceData? {
+    fun getPrice(item: String): PriceData? {
+        return priceCache[item]
+    }
+
+    private fun asyncLogTick(item: String, volume: Int) {
 
         val ask: Double
         val bid: Double
 
-        val list = asyncGetOrderList(item) ?: return null
+        val list = asyncGetOrderList(item)
 
-        if (list.isEmpty()) {
-            return PriceData(item, 0.0, 0.0)
+        if (list.isNullOrEmpty()) {
+            return
         }
 
         val sell = list.filter { f -> f.sell }
@@ -55,14 +60,10 @@ object Market {
         ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
-        return PriceData(item, ask, bid)
-    }
-
-    private fun asyncLogTick(item: String, volume: Int) {
-
-        val price = asyncGetPrice(item) ?: return
+        val price = PriceData(item, ask, bid)
 
         ItemBankAPI.setItemPrice(item, price.bid, price.ask)
+        priceCache[item] = PriceData(item, price.bid, price.ask)
 
         mysql.execute(
             "INSERT INTO tick_table (item_id, date, bid, ask, volume) " +
@@ -323,7 +324,7 @@ object Market {
                 return@add
             }
 
-            val nowPrice = asyncGetPrice(item)
+            val nowPrice = getPrice(item)
 
             if (nowPrice == null) {
                 msg(p.player, "§c§l登録されていないアイテムです")
@@ -384,7 +385,7 @@ object Market {
                 return@add
             }
 
-            val nowPrice = asyncGetPrice(item)
+            val nowPrice = getPrice(item)
 
             if (nowPrice == null) {
                 msg(p.player, "§c§l登録されていないアイテムです")
@@ -464,14 +465,14 @@ object Market {
                 ItemBankAPI.addItemAmount(data.uuid, data.uuid, data.item, data.lot)
             }
 
-            val lastPrice = asyncGetPrice(data.item)!!
+//            val lastPrice = asyncGetPrice(data.item)!!
             mysql.execute("DELETE from order_table where id = ${id};")
-            val nowPrice = asyncGetPrice(data.item)!!
+//            val nowPrice = asyncGetPrice(data.item)!!
 
             //キャンセルによって価格変更が起きた場合は、Tickとしてカウントする
-            if (lastPrice.ask != nowPrice.ask || lastPrice.bid != nowPrice.bid) {
-                asyncLogTick(data.item, 0)
-            }
+//            if (lastPrice.ask != nowPrice.ask || lastPrice.bid != nowPrice.bid) {
+//                asyncLogTick(data.item, 0)
+//            }
 
             asyncRecordLog(data.uuid, data.item, data.lot, data.price, "指値取り消し")
 

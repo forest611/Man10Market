@@ -35,8 +35,6 @@ class MainMenu(p:Player,page:Int) :MenuFramework(p,54,"§6§lMan10中央取引�
 
             button.lore(mutableListOf("§a§l左クリック:購入","§c§l右クリック:売却","§b§lシフト左クリック:高度な取引"))
 
-
-            //TODO:シフトクリックでアイテムが取り出せちゃう問題を治す
             button.setClickAction{e->
 
                 val clicked = e.whoClicked as Player
