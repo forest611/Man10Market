@@ -71,6 +71,8 @@ object Market {
 
         //出来高がなく、価格変更がない場合はTickを生成しない
         if (volume == 0 || (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)){
+            priceCache[item] = PriceData(item, ask, bid)
+            ItemBankAPI.setItemPrice(item, bid, ask)
             return
         }
 
@@ -369,6 +371,7 @@ object Market {
 
             msg(p.player, "§b§l指値買§e§lを発注しました")
             asyncRecordLog(uuid, item, lot, price, "指値買い")
+            asyncLogTick(item,0)
 
         }
 
@@ -426,6 +429,7 @@ object Market {
 
                 msg(p.player, "§c§l指値売§e§lを発注しました")
                 asyncRecordLog(uuid, item, lot, price, "指値売り")
+                asyncLogTick(item,0)
 
             }
         }
@@ -474,7 +478,6 @@ object Market {
 
             //値段の変更があるかもしれないので呼ぶ
             asyncLogTick(data.item,0)
-
             asyncRecordLog(data.uuid, data.item, data.lot, data.price, "指値取り消し")
 
         }
