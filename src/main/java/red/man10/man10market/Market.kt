@@ -70,7 +70,7 @@ object Market {
         }
 
         //出来高がなく、価格変更がない場合はTickを生成しない
-        if (volume == 0 || (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)){
+        if (volume == 0 && (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)){
             priceCache[item] = PriceData(item, ask, bid)
             ItemBankAPI.setItemPrice(item, bid, ask)
             return
