@@ -42,7 +42,7 @@ object Market {
     }
 
     fun getPrice(item: String): PriceData {
-        return priceCache[item]!!
+        return priceCache[item]?: PriceData(item, Double.MAX_VALUE,0.0)
     }
 
 

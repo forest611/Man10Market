@@ -700,6 +700,8 @@ public class MappRenderer extends MapRenderer implements Listener {
         setupMaps(plugin);
         MappRenderer.plugin = plugin;
         vaultManager = new VaultManager(plugin);
+
+        PriceMap.registerPriceMap();
     }
 
 

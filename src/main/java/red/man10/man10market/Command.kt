@@ -12,6 +12,7 @@ import red.man10.man10market.Man10Market.Companion.isMarketOpen
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import red.man10.man10market.Util.prefix
+import red.man10.man10market.map.PriceMap
 import red.man10.man10market.menu.MainMenu
 import java.text.SimpleDateFormat
 import java.util.*
@@ -111,6 +112,13 @@ object Command : CommandExecutor {
                         return true
                     }
 
+                    "map" ->{
+
+                        if (sender !is Player)return false
+
+                        PriceMap.getPriceMap(sender,args[2])
+
+                    }
 
                 }
 
