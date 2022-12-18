@@ -1,8 +1,14 @@
 package red.man10.man10market
 
+import net.kyori.adventure.text.Component
+import org.bukkit.Bukkit
+import org.yaml.snakeyaml.error.Mark
 import red.man10.man10bank.MySQLManager
+import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
+import red.man10.man10market.Util.format
+import red.man10.man10market.Util.prefix
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -15,10 +21,61 @@ object MarketData {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
 
-    //TODO:マーケット速報用の高値安値のデータ
-
     private val marketSeriesCache = ConcurrentHashMap<Pair<String,String>,MarketSeries>()
     private val marketValueCache = ConcurrentHashMap<String,Double>()
+    private val highLowPriceCache = ConcurrentHashMap<String,HighLow>()//高値安値
+
+    init {
+        Thread{loadHighLowPrice()}.start()
+    }
+
+
+    private fun loadHighLowPrice(){
+
+        val mysql = MySQLManager(instance,"Man10Market")
+        val rs = mysql.query("select item_id,bid from tick_table  where volume>0;")?:return
+
+        while (rs.next()){
+            val item = rs.getString("item_id")
+            val price = rs.getDouble("bid")
+            val cache = highLowPriceCache[item]?: HighLow(0.0,Double.MAX_VALUE)//高値、安値の順番
+
+            if (cache.high<price){
+                highLowPriceCache[item] = HighLow(price,cache.low)
+            }
+            if (cache.low>price){
+                highLowPriceCache[item] = HighLow(cache.high,price)
+            }
+        }
+
+        rs.close()
+        mysql.close()
+
+    }
+    fun tickEvent(item:String){
+
+        val price = Market.getPrice(item)
+
+        val highlow = highLowPriceCache[item]?:HighLow(0.0,Double.MAX_VALUE)
+
+        //高値更新
+        if (highlow.high<price.bid){
+
+            highLowPriceCache[item] = HighLow(price.bid,highlow.low)
+
+            Bukkit.broadcast(Component.text("${prefix}§a§lマーケット速報！！${item}:${format(price.bid)}円 過去最高値更新！！！"))
+        }
+
+        //安値更新
+        if (highlow.low>price.bid){
+
+            highLowPriceCache[item] = HighLow(highlow.high,price.bid)
+
+            Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
+        }
+
+
+    }
 
     //ユーザーのアイテム資産の総額を見る
     fun getItemEstate(uuid: UUID): Double {
@@ -201,6 +258,11 @@ object MarketData {
         val close: Double = 0.0,
         var volume: Int = 0,
         var tickVolume: Int = 0
+    )
+
+    data class HighLow(
+        var high:Double,
+        var low:Double
     )
 
 }

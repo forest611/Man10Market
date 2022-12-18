@@ -26,8 +26,8 @@ object Market {
 
     init {
         runTransactionQueue()
-        //アイテムごとの注文を一旦読み込む
-        getItemIndex().forEach { asyncGetOrderList(it) }
+        //キャッシュ読み込み
+        getItemIndex().forEach { asyncLogTick(it,0) }
     }
 
 
@@ -46,7 +46,6 @@ object Market {
     }
 
 
-    //TODO:価格変更を検知する仕組みなどを考える
     //価格変更があったら呼び出す
     private fun asyncLogTick(item: String, volume: Int) {
 
@@ -65,12 +64,27 @@ object Market {
         ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
+        //nullの場合は現在の価格を
+        if (priceCache[item] == null){
+            priceCache[item] = PriceData(item, ask, bid)
+        }
+
+        //出来高がなく、価格変更がない場合はTickを生成しない
+        if (volume == 0 || (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)){
+            return
+        }
+
+        //キャッシング
+        priceCache[item] = PriceData(item, ask, bid)
         ItemBankAPI.setItemPrice(item, bid, ask)
 
         mysql.execute(
             "INSERT INTO tick_table (item_id, date, bid, ask, volume) " +
                     "VALUES ('${item}', DEFAULT, ${bid}, ${ask}, $volume)"
         )
+
+        //Tickイベント
+        MarketData.tickEvent(item)
     }
 
     //取引があったら呼ぶ
@@ -112,15 +126,6 @@ object Market {
 
         rs.close()
         mysql.close()
-
-        //価格をキャッシングしておく
-        val sell = list.filter { f -> f.sell }
-        val buy = list.filter { f -> f.buy }
-
-        val ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
-        val bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
-
-        priceCache[item] = PriceData(item, ask, bid)
 
         return list
     }
@@ -240,6 +245,7 @@ object Market {
 
                 msg(p, "§e§l${tradeAmount}個購入")
                 asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行買い")
+                asyncLogTick(item,tradeAmount)
             }
         }
     }
@@ -307,6 +313,7 @@ object Market {
 
                 msg(p, "§e§l${tradeAmount}個売却")
                 asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行売り")
+                asyncLogTick(item,tradeAmount)
 
             }
         }
@@ -463,14 +470,10 @@ object Market {
                 ItemBankAPI.addItemAmount(data.uuid, data.uuid, data.item, data.lot)
             }
 
-//            val lastPrice = asyncGetPrice(data.item)!!
             mysql.execute("DELETE from order_table where id = ${id};")
-//            val nowPrice = asyncGetPrice(data.item)!!
 
-            //キャンセルによって価格変更が起きた場合は、Tickとしてカウントする
-//            if (lastPrice.ask != nowPrice.ask || lastPrice.bid != nowPrice.bid) {
-//                asyncLogTick(data.item, 0)
-//            }
+            //値段の変更があるかもしれないので呼ぶ
+            asyncLogTick(data.item,0)
 
             asyncRecordLog(data.uuid, data.item, data.lot, data.price, "指値取り消し")
 
@@ -508,14 +511,14 @@ object Market {
             return -1
         }
 
-        asyncLogTick(data.item, amount)
-
         if (newAmount == 0) {
             mysql.execute("DELETE from order_table where id = ${id};")
         } else {
             mysql.execute("UPDATE order_table SET lot = $newAmount WHERE id = ${id};")
 
         }
+
+        asyncLogTick(data.item, amount)
 
         //指値買い
         if (data.buy) {
