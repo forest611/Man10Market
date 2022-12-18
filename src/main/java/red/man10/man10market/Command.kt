@@ -112,11 +112,11 @@ object Command : CommandExecutor {
                         return true
                     }
 
-                    "map" ->{
+                    "map" -> {
 
-                        if (sender !is Player)return false
+                        if (sender !is Player) return false
 
-                        PriceMap.getPriceMap(sender,args[2])
+                        PriceMap.getPriceMap(sender, args[2])
 
                     }
 
@@ -296,7 +296,7 @@ object Command : CommandExecutor {
 
             "smallboard" -> {
                 if (!sender.hasPermission(USER)) return false
-                showSmallOrderBook(sender,args[1])
+                showSmallOrderBook(sender, args[1])
             }
 
 
@@ -305,7 +305,7 @@ object Command : CommandExecutor {
         return false
     }
 
-    private fun showSmallOrderBook(sender: CommandSender,item:String){
+    private fun showSmallOrderBook(sender: CommandSender, item: String) {
 
         Market.getOrderList(item) { order ->
 
@@ -317,56 +317,56 @@ object Command : CommandExecutor {
             val sell = order.filter { f -> f.sell }.groupBy { g -> g.price }.toMutableMap()
             val buy = order.filter { f -> f.buy }.groupBy { g -> g.price }.toMutableMap()
 
-            sender.sendMessage( "§a§l==========[ オーダーブック : $item ]==========")
-            sender.sendMessage( String.format("§b§l%5s    %5s    %5s", "売数量", "値段", "買数量"))
+            sender.sendMessage("§a§l==========[ オーダーブック : $item ]==========")
+            sender.sendMessage(String.format("§b§l%5s    %5s    %5s", "売数量", "値段", "買数量"))
 
             if (sell.isEmpty()) {
-                sender.sendMessage( String.format("§a§l%8s    %4s", "", "売注文なし"))
+                sender.sendMessage(String.format("§a§l%8s    %4s", "", "売注文なし"))
             } else {
 
                 val prices = sell.keys.sorted().reversed()
 
                 var over = 0
                 //注文個数が5個以上の場合
-                if (prices.size>5){
-                    val overPrice = prices[prices.size-5]
-                    sell.filter { it.key>overPrice }.forEach{ f -> f.value.forEach { over+=it.lot }}
-                    sell.filter { it.key>overPrice }.forEach { sell.remove(it.key) }
-                    sender.sendMessage( String.format("§e§l%8d    %8s           ", over, "OVER"))
+                if (prices.size > 5) {
+                    val overPrice = prices[prices.size - 5]
+                    sell.filter { it.key > overPrice }.forEach { f -> f.value.forEach { over += it.lot } }
+                    sell.filter { it.key > overPrice }.forEach { sell.remove(it.key) }
+                    sender.sendMessage(String.format("§e§l%8d    %8s           ", over, "OVER"))
                 }
 
                 for (orderPrice in prices) {
-                    val lot = sell[orderPrice]?.sumOf { s -> s.lot }?:continue
+                    val lot = sell[orderPrice]?.sumOf { s -> s.lot } ?: continue
                     val color = if (orderPrice == prices.last()) "§a§l" else "§e§l"
-                    sender.sendMessage( String.format("${color}%8d    %8s           ", lot, format(orderPrice)))
+                    sender.sendMessage(String.format("${color}%8d    %8s           ", lot, format(orderPrice)))
                 }
 
             }
 
             if (buy.isEmpty()) {
-                sender.sendMessage( String.format("§c§l           %4s    %8s", "買注文なし", ""))
+                sender.sendMessage(String.format("§c§l           %4s    %8s", "買注文なし", ""))
             } else {
 
                 val prices = buy.keys.sorted().reversed()
 
                 var under = 0
 
-                if (prices.size>5){
+                if (prices.size > 5) {
                     val underPrice = prices[4]
-                    buy.filter { it.key<underPrice }.forEach{ f -> f.value.forEach { under+=it.lot }}
-                    buy.filter { it.key<underPrice }.forEach { buy.remove(it.key) }
+                    buy.filter { it.key < underPrice }.forEach { f -> f.value.forEach { under += it.lot } }
+                    buy.filter { it.key < underPrice }.forEach { buy.remove(it.key) }
                 }
 
                 for (orderPrice in prices) {
-                    val lot = buy[orderPrice]?.sumOf { s -> s.lot }?:continue
+                    val lot = buy[orderPrice]?.sumOf { s -> s.lot } ?: continue
 
                     val color = if ((orderPrice == prices.first())) "§c§l" else "§e§l"
 
-                    sender.sendMessage( String.format("$color           %8s    %8d", format(orderPrice), lot))
+                    sender.sendMessage(String.format("$color           %8s    %8d", format(orderPrice), lot))
                 }
 
-                if (prices.size>5){
-                    sender.sendMessage( String.format("§e§l           %8s    %8d", "UNDER", under))
+                if (prices.size > 5) {
+                    sender.sendMessage(String.format("§e§l           %8s    %8d", "UNDER", under))
                 }
 
             }

@@ -21,13 +21,13 @@ object Market {
 
     private val transactionQueue = LinkedBlockingQueue<() -> Unit>()
     private var transactionThread = Thread { transaction() }
-    private val priceCache = ConcurrentHashMap<String,PriceData>()
+    private val priceCache = ConcurrentHashMap<String, PriceData>()
     private val mysql = MySQLManager(instance, "Man10MarketQueue")
 
     init {
         runTransactionQueue()
         //キャッシュ読み込み
-        getItemIndex().forEach { asyncLogTick(it,0) }
+        getItemIndex().forEach { asyncLogTick(it, 0) }
     }
 
 
@@ -42,7 +42,7 @@ object Market {
     }
 
     fun getPrice(item: String): PriceData {
-        return priceCache[item]?: PriceData(item, Double.MAX_VALUE,0.0)
+        return priceCache[item] ?: PriceData(item, Double.MAX_VALUE, 0.0)
     }
 
 
@@ -65,12 +65,12 @@ object Market {
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
         //nullの場合は現在の価格を
-        if (priceCache[item] == null){
+        if (priceCache[item] == null) {
             priceCache[item] = PriceData(item, ask, bid)
         }
 
         //出来高がなく、価格変更がない場合はTickを生成しない
-        if (volume == 0 && (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)){
+        if (volume == 0 && (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)) {
             priceCache[item] = PriceData(item, ask, bid)
             ItemBankAPI.setItemPrice(item, bid, ask)
             return
@@ -247,7 +247,7 @@ object Market {
 
                 msg(p, "§e§l${tradeAmount}個購入")
                 asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行買い")
-                asyncLogTick(item,tradeAmount)
+                asyncLogTick(item, tradeAmount)
             }
         }
     }
@@ -315,7 +315,7 @@ object Market {
 
                 msg(p, "§e§l${tradeAmount}個売却")
                 asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行売り")
-                asyncLogTick(item,tradeAmount)
+                asyncLogTick(item, tradeAmount)
 
             }
         }
@@ -371,7 +371,7 @@ object Market {
 
             msg(p.player, "§b§l指値買§e§lを発注しました")
             asyncRecordLog(uuid, item, lot, price, "指値買い")
-            asyncLogTick(item,0)
+            asyncLogTick(item, 0)
 
         }
 
@@ -429,7 +429,7 @@ object Market {
 
                 msg(p.player, "§c§l指値売§e§lを発注しました")
                 asyncRecordLog(uuid, item, lot, price, "指値売り")
-                asyncLogTick(item,0)
+                asyncLogTick(item, 0)
 
             }
         }
@@ -477,7 +477,7 @@ object Market {
             mysql.execute("DELETE from order_table where id = ${id};")
 
             //値段の変更があるかもしれないので呼ぶ
-            asyncLogTick(data.item,0)
+            asyncLogTick(data.item, 0)
             asyncRecordLog(data.uuid, data.item, data.lot, data.price, "指値取り消し")
 
         }

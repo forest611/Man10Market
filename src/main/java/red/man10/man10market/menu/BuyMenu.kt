@@ -18,7 +18,7 @@ class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "購入する") {
         val data = ItemBankAPI.getItemData(item)
 
         val infoButton = Button(Material.LIME_STAINED_GLASS_PANE)
-        infoButton.setClickAction{}
+        infoButton.setClickAction {}
         setButton(infoButton, 0)
         setButton(infoButton, 8)
 

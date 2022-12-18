@@ -21,30 +21,30 @@ object MarketData {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
 
-    private val marketSeriesCache = ConcurrentHashMap<Pair<String,String>,MarketSeries>()
-    private val marketValueCache = ConcurrentHashMap<String,Double>()
-    private val highLowPriceCache = ConcurrentHashMap<String,HighLow>()//高値安値
+    private val marketSeriesCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
+    private val marketValueCache = ConcurrentHashMap<String, Double>()
+    private val highLowPriceCache = ConcurrentHashMap<String, HighLow>()//高値安値
 
     init {
-        Thread{loadHighLowPrice()}.start()
+        Thread { loadHighLowPrice() }.start()
     }
 
 
-    private fun loadHighLowPrice(){
+    private fun loadHighLowPrice() {
 
-        val mysql = MySQLManager(instance,"Man10Market")
-        val rs = mysql.query("select item_id,bid from tick_table  where volume>0;")?:return
+        val mysql = MySQLManager(instance, "Man10Market")
+        val rs = mysql.query("select item_id,bid from tick_table  where volume>0;") ?: return
 
-        while (rs.next()){
+        while (rs.next()) {
             val item = rs.getString("item_id")
             val price = rs.getDouble("bid")
-            val cache = highLowPriceCache[item]?: HighLow(0.0,Double.MAX_VALUE)//高値、安値の順番
+            val cache = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)//高値、安値の順番
 
-            if (cache.high<price){
-                highLowPriceCache[item] = HighLow(price,cache.low)
+            if (cache.high < price) {
+                highLowPriceCache[item] = HighLow(price, cache.low)
             }
-            if (cache.low>price){
-                highLowPriceCache[item] = HighLow(cache.high,price)
+            if (cache.low > price) {
+                highLowPriceCache[item] = HighLow(cache.high, price)
             }
         }
 
@@ -52,24 +52,25 @@ object MarketData {
         mysql.close()
 
     }
-    fun tickEvent(item:String){
+
+    fun tickEvent(item: String) {
 
         val price = Market.getPrice(item)
 
-        val highlow = highLowPriceCache[item]?:HighLow(0.0,Double.MAX_VALUE)
+        val highlow = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)
 
         //高値更新
-        if (highlow.high<price.bid){
+        if (highlow.high < price.bid) {
 
-            highLowPriceCache[item] = HighLow(price.bid,highlow.low)
+            highLowPriceCache[item] = HighLow(price.bid, highlow.low)
 
             Bukkit.broadcast(Component.text("${prefix}§a§lマーケット速報！！${item}:${format(price.bid)}円 過去最高値更新！！！"))
         }
 
         //安値更新
-        if (highlow.low>price.bid){
+        if (highlow.low > price.bid) {
 
-            highLowPriceCache[item] = HighLow(highlow.high,price.bid)
+            highLowPriceCache[item] = HighLow(highlow.high, price.bid)
 
             Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
         }
@@ -117,7 +118,7 @@ object MarketData {
     //時価総額を取得
     fun getMarketValue(item: String): Double {
 
-        if (marketValueCache[item]!=null){
+        if (marketValueCache[item] != null) {
             return marketValueCache[item]!!
         }
 
@@ -160,10 +161,10 @@ object MarketData {
     fun getTodayOHLC(item: String): MarketSeries {
 
         val dateString = sdf.format(Date())
-        val key = Pair(item,dateString)
+        val key = Pair(item, dateString)
 
         //キャッシュがあるならそっちをとる
-        if (marketSeriesCache[key]!=null){
+        if (marketSeriesCache[key] != null) {
             return marketSeriesCache[key]!!
         }
 
@@ -204,10 +205,10 @@ object MarketData {
 
         val yesterday = calender.time
 
-        val key = Pair(item,sdf.format(yesterday))
+        val key = Pair(item, sdf.format(yesterday))
 
         //キャッシュがあるならそっちをとる
-        if (marketSeriesCache[key]!=null){
+        if (marketSeriesCache[key] != null) {
             return marketSeriesCache[key]!!
         }
 
@@ -261,8 +262,8 @@ object MarketData {
     )
 
     data class HighLow(
-        var high:Double,
-        var low:Double
+        var high: Double,
+        var low: Double
     )
 
 }
