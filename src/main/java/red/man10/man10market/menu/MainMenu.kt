@@ -37,10 +37,13 @@ class MainMenu(p: Player, page: Int) : MenuFramework(p, 54, "§6§lMan10中央�
 
             val price = Market.getPrice(item)
 
+            val askText = if (price.ask== Double.MAX_VALUE) "注文なし" else "${Util.format(price.ask)}円"
+            val bidText = if (price.bid== 0.0) "注文なし" else "${Util.format(price.bid)}円"
+
             button.lore(
                 mutableListOf(
-                    "§a§l左クリック:購入(購入価格:${Util.format(price.ask)}円)",
-                    "§c§l右クリック:売却(売却価格:${Util.format(price.bid)}円)",
+                    "§a§l左クリック:購入(購入価格:$askText)",
+                    "§c§l右クリック:売却(売却価格:$bidText)",
                     "§b§lシフト左クリック:高度な取引"
                 )
             )
