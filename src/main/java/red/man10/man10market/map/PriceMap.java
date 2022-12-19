@@ -34,7 +34,7 @@ public class PriceMap {
             List<String> items = Market.INSTANCE.getItemIndex();
 
             for (String item : items) {
-                MappRenderer.draw("price:" + item, 20, (String key, int mapId, Graphics2D g) -> {
+                MappRenderer.draw("price:" + item, 600, (String key, int mapId, Graphics2D g) -> {
                     drawPrice(g, item);
                     return true;
                 });
@@ -84,8 +84,8 @@ public class PriceMap {
         g.setColor(col);
 //        g.drawString(strPrice,10,50);
 
-        if (price.getBid() == 0 && price.getAsk() == Double.MAX_VALUE) {
-            strPrice = "注文なし";
+        if (price.getBid() == 0 || price.getAsk() == Double.MAX_VALUE) {
+            strPrice = "仲直未定";
         }
 
         MappDraw.drawShadowString(g, strPrice, col, Color.BLACK, 10, 50);
