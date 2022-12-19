@@ -434,32 +434,33 @@ object Command : CommandExecutor {
             val totalSell = order.filter { f -> f.sell }.sumOf { s -> s.lot }
 
             msg(p, "§f成り行き注文(現在価格で取引をする)")
-            if (showMarketSell) {
-                p.sendMessage(
-                    text("$prefix   §a§n[成行売り注文]§f ${totalBuy}個まで売却可能")
-                        .clickEvent(ClickEvent.suggestCommand("/mce marketsell $item "))
-                        .hoverEvent(HoverEvent.showText(text("§6§l/mce marketsell $item <個数>")))
-                )
-            }
             if (showMarketBuy) {
                 p.sendMessage(
-                    text("$prefix   §c§n[成行買い注文]§f ${totalSell}個まで購入可能")
+                    text("$prefix   §a§n[成行買い注文]§f ${totalSell}個まで購入可能")
                         .clickEvent(ClickEvent.suggestCommand("/mce marketbuy $item "))
                         .hoverEvent(HoverEvent.showText(text("§6§l/mce marketbuy $item <個数>")))
                 )
             }
+            if (showMarketSell) {
+                p.sendMessage(
+                    text("$prefix   §c§n[成行売り注文]§f ${totalBuy}個まで売却可能")
+                        .clickEvent(ClickEvent.suggestCommand("/mce marketsell $item "))
+                        .hoverEvent(HoverEvent.showText(text("§6§l/mce marketsell $item <個数>")))
+                )
+            }
             msg(p, "§f指値注文(価格を指定して注文を予約する)")
+
             p.sendMessage(
-                text("$prefix   §a§n[指値売り注文]")
+                text("$prefix   §a§n[指値買い注文]")
+                    .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
+                    .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>")))
+            )
+            p.sendMessage(
+                text("$prefix   §c§n[指値売り注文]")
                     .clickEvent(ClickEvent.suggestCommand("/mce ordersell $item "))
                     .hoverEvent(HoverEvent.showText(text("§6§l/mce ordersell $item <購入単価> <個数>")))
             )
 
-            p.sendMessage(
-                text("$prefix   §c§n[指値買い注文]")
-                    .clickEvent(ClickEvent.suggestCommand("/mce orderbuy $item "))
-                    .hoverEvent(HoverEvent.showText(text("§6§l/mce orderbuy $item <購入単価> <個数>")))
-            )
 
 
             val yesterday = MarketData.getYesterdayOHLC(item)

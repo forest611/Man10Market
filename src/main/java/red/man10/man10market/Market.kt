@@ -68,9 +68,10 @@ object Market {
         if (priceCache[item] == null) {
             priceCache[item] = PriceData(item, ask, bid)
         }
+        val cache = priceCache[item]!!
 
         //出来高がなく、価格変更がない場合はTickを生成しない
-        if (volume == 0 && (priceCache[item]!!.ask == ask && priceCache[item]!!.bid == bid)) {
+        if (volume == 0 && (cache.ask == ask && cache.bid == bid)) {
             priceCache[item] = PriceData(item, ask, bid)
             ItemBankAPI.setItemPrice(item, bid, ask)
             return
@@ -86,7 +87,7 @@ object Market {
         )
 
         //Tickイベント
-        MarketData.tickEvent(item)
+        MarketData.tickEvent(item,cache)
     }
 
     //取引があったら呼ぶ
@@ -590,7 +591,7 @@ object Market {
         var item: String,
         var ask: Double,
         var bid: Double,
-        var price: Double = ask + bid / 2
+        var price: Double = (ask + bid) / 2
     )
 
     class Lock {

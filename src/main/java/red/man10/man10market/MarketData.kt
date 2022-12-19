@@ -53,11 +53,23 @@ object MarketData {
 
     }
 
-    fun tickEvent(item: String) {
+    fun tickEvent(item: String,last:Market.PriceData) {
 
         val price = Market.getPrice(item)
 
         val highlow = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)
+
+        if (price.ask != Double.MAX_VALUE){
+
+            if (price.price>last.price){
+                Bukkit.broadcast(Component.text( "§a${item}: ${format(last.price)}から${format(price.price)}へ値上がりしました"))
+            }
+
+            if (price.price<last.price){
+                Bukkit.broadcast(Component.text( "§c${item}: ${format(last.price)}から${format(price.price)}へ値下がりしました"))
+            }
+
+        }
 
         //高値更新
         if (highlow.high < price.bid) {
