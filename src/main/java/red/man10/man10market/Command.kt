@@ -19,8 +19,8 @@ import java.util.*
 
 object Command : CommandExecutor {
 
-    private const val OP = "man10market.op"
-    private const val USER = "man10market.user"
+    private const val OP = "market.op"
+    private const val USER = "market.user"
     private val sdf = SimpleDateFormat("yyyy-MM-dd hh:mm")
 
 
@@ -33,7 +33,10 @@ object Command : CommandExecutor {
 
         if (args.isEmpty()) {
             if (sender !is Player) return false
-            if (!sender.hasPermission(USER)) return false
+            if (!sender.hasPermission(USER)) {
+                msg(sender,"§c§lマーケットにアクセスする権限がありません")
+                return false
+            }
             MainMenu(sender, 0).open()
             return true
         }
@@ -127,7 +130,10 @@ object Command : CommandExecutor {
             "price" -> {
 
                 if (sender !is Player) return false
-                if (!sender.hasPermission(USER)) return false
+                if (!sender.hasPermission(USER)) {
+                    msg(sender,"§c§lマーケットにアクセスする権限がありません")
+                    return false
+                }
 
                 if (args.size != 2) {
                     msg(sender, "§c§l/mce price <銘柄名>")
