@@ -61,6 +61,8 @@ public class PriceMap {
         g.setColor(Color.GRAY);
         g.fillRect(0, 0, 128, 128);
 
+        MappDraw.drawImage(g,item,64,20,64,64);
+
         g.setColor(Color.WHITE);
 
         int titleSize = 20;

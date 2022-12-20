@@ -62,11 +62,11 @@ object MarketData {
         if (price.ask != Double.MAX_VALUE){
 
             if (price.price>last.price){
-                Bukkit.broadcast(Component.text( "§a${item}: ${format(last.price)}から${format(price.price)}へ値上がりしました"))
+                Bukkit.broadcast(Component.text( "${prefix}§a${item}: ${format(last.price)}から${format(price.price)}へ値上がりしました"))
             }
 
             if (price.price<last.price){
-                Bukkit.broadcast(Component.text( "§c${item}: ${format(last.price)}から${format(price.price)}へ値下がりしました"))
+                Bukkit.broadcast(Component.text( "${prefix}§c${item}: ${format(last.price)}から${format(price.price)}へ値下がりしました"))
             }
 
         }
