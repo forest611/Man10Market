@@ -9,3 +9,5 @@ depend:
 commands:
   mce:
     description: Man10Market
+  mstock:
+    description: Man10Market

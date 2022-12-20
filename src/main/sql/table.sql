@@ -45,3 +45,18 @@ create table execution_log
         primary key (id)
 );
 
+create table stock_table
+(
+    id                 int auto_increment,
+    player             varchar(16) null,
+    uuid               varchar(36) null,
+    stock_name         varchar(64) null,
+    total_issued_stock int         null,
+    last_issue_date    datetime    null,
+    constraint Stock_table_pk
+        primary key (id)
+);
+
+create index Stock_table_uuid_stock_name_index
+    on Stock_table (uuid, stock_name);
+

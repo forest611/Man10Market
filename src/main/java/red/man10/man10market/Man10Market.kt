@@ -3,6 +3,7 @@ package red.man10.man10market
 import org.bukkit.plugin.java.JavaPlugin
 import red.man10.man10bank.BankAPI
 import red.man10.man10market.map.MappRenderer
+import red.man10.man10market.stock.Stock
 
 class Man10Market : JavaPlugin() {
 
@@ -23,6 +24,7 @@ class Man10Market : JavaPlugin() {
         bankAPI = BankAPI(this)
 
         getCommand("mce")!!.setExecutor(Command)
+        getCommand("mstock")!!.setExecutor(Stock)
 
         MappRenderer.setup(this)
 

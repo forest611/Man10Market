@@ -19,12 +19,14 @@ import java.util.*
 
 object Command : CommandExecutor {
 
-    private const val OP = "market.op"
-    private const val USER = "market.user"
+    const val OP = "market.op"
+    const val USER = "market.user"
     private val sdf = SimpleDateFormat("yyyy-MM-dd hh:mm")
 
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+
+        if (label != "mce")return false
 
         if (!isMarketOpen && !sender.hasPermission(OP)) {
             msg(sender as Player, "§c§l現在取引所は閉場しております")
