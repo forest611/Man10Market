@@ -164,8 +164,8 @@ object Stock : CommandExecutor{
         val rs2 = mysql.query("select uuid,lot from order_table where item_id='$name' and sell=1;") ?: return emptyList()
 
         while (rs2.next()){
-            val uuid = UUID.fromString(rs.getString("uuid"))
-            map[uuid] = (map[uuid]?:0) + rs.getInt("lot")
+            val uuid = UUID.fromString(rs2.getString("uuid"))
+            map[uuid] = (map[uuid]?:0) + rs2.getInt("lot")
         }
 
         rs2.close()
@@ -235,6 +235,9 @@ object Stock : CommandExecutor{
         }
 
         if (args.isNullOrEmpty()){
+            msg(sender,"/mstock issue <株式名> <発行数> : 資金調達のために株式を新規発行する(株主と要相談)")
+            msg(sender,"/mstock pay <株式名> <一株あたりの配当額> : 株主に配当を支払う")
+            msg(sender,"/mstock show <株式名> : 総発行株数などを確認する")
             return true
         }
 

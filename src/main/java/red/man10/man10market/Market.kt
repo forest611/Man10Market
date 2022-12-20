@@ -407,7 +407,7 @@ object Market {
                 return@add
             }
 
-            if (price > nowPrice.bid * 10 && nowPrice.ask >= Double.MAX_VALUE) {
+            if (price > nowPrice.bid * 10 && nowPrice.bid != 0.0 && nowPrice.ask >= Double.MAX_VALUE) {
                 msg(p.player, "§c§l売り注文がない状態で買値の10倍以上の価格は注文できません")
                 return@add
             }
