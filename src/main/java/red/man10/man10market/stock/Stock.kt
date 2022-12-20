@@ -272,7 +272,7 @@ object Stock : CommandExecutor{
                 }
 
                 val title = args[1]
-                val lore = args[2].split("/").toList()
+                val lore = args[2].replace("&","§").split("/").toList()
 
                 sender.inventory.addItem(createStockItem(title,lore))
 
