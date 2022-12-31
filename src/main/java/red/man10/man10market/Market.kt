@@ -230,7 +230,7 @@ object Market {
                 if (sendInventory) {
                     val itemData = ItemBankAPI.getItemData(item)!!
                     val itemStack = itemData.item!!.clone()
-                    itemStack.amount = lot
+                    itemStack.amount = tradeAmount
 
                     if (p?.inventory?.firstEmpty() == -1) {
                         msg(p, "§cインベントリに空きがないため、アイテムバンクに収納しました")
