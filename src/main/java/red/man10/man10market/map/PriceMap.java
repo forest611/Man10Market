@@ -68,6 +68,8 @@ public class PriceMap {
             return false;
         }
 
+        priceCache.put(item,price);
+
         g.setColor(Color.GRAY);
         g.fillRect(0, 0, 128, 128);
 
