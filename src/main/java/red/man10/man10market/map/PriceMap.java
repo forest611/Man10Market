@@ -84,11 +84,11 @@ public class PriceMap {
             titleSize = 12;
         }
 
-        g.setFont(new Font("SansSerif", Font.BOLD, titleSize));
+        g.setFont(new Font(Font.DIALOG, Font.BOLD, titleSize));
 
         MappDraw.drawShadowString(g, item, Color.WHITE, Color.BLACK, 5, 20);
 
-        g.setFont(new Font("SansSerif", Font.BOLD, 20));
+        g.setFont(new Font(Font.DIALOG, Font.BOLD, 20));
 
         Color col = Color.YELLOW;
 
@@ -106,13 +106,13 @@ public class PriceMap {
         MappDraw.drawShadowString(g, strPrice, col, Color.BLACK, 10, 50);
 
         g.setColor(Color.GREEN);
-        g.setFont(new Font("SansSerif", Font.BOLD, 16));
+        g.setFont(new Font(Font.DIALOG, Font.BOLD, 16));
 
 
         if (price.getAsk() == Double.MAX_VALUE) {
             MappDraw.drawShadowString(g, "売り注文なし", Color.GREEN, Color.black, 4, 80);
         } else {
-            g.setFont(new Font("SansSerif", Font.BOLD, 16));
+            g.setFont(new Font(Font.DIALOG, Font.BOLD, 16));
             g.drawString("買:" + Util.INSTANCE.format(price.getAsk(), 0), 4, 80);
         }
 

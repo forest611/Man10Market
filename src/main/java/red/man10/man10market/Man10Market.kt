@@ -42,7 +42,6 @@ class Man10Market : JavaPlugin() {
         reloadConfig()
 
         isMarketOpen = config.getBoolean("MarketOpen", false)
-
     }
 
     fun saveMarketConfig() {
