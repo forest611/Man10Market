@@ -16,11 +16,14 @@ import java.util.Map;
 public class PriceMap {
 
 
+    //価格情報のキャッシュ
     private static final Map<String, Market.PriceData> priceCache = new HashMap<>();
 
     public static void getPriceMap(Player p, String item) {
 
-        ItemStack map = MappRenderer.getMapItem(Man10Market.instance, "price:" + item);
+        int id = ItemBankAPI.INSTANCE.getItemData(item).getId();
+
+        ItemStack map = MappRenderer.getMapItem(Man10Market.instance, "price:" + id);
 
         if (map == null) {
             p.sendMessage("Error Null");
@@ -39,9 +42,14 @@ public class PriceMap {
             List<String> items = Market.INSTANCE.getItemIndex();
 
             for (String item : items) {
-                MappRenderer.draw("price:" + item, 600, (String key, int mapId, Graphics2D g) -> drawPrice(g, item));
 
-                MappRenderer.displayTouchEvent("price:" + item, (key, mapId, player, x, y) -> {
+                int id = ItemBankAPI.INSTANCE.getItemData(item).getId();
+
+                //描画処理
+                MappRenderer.draw("price:" + id, 600, (String key, int mapId, Graphics2D g) -> drawPrice(g, item));
+
+                //マップタッチ処理
+                MappRenderer.displayTouchEvent("price:" + id, (key, mapId, player, x, y) -> {
                     player.performCommand("mce price " + item);
                     return true;
                 });
@@ -90,24 +98,20 @@ public class PriceMap {
 
         g.setFont(new Font(Font.DIALOG, Font.BOLD, 20));
 
-        Color col = Color.YELLOW;
-
-
         String strPrice = Util.INSTANCE.format(price.getPrice(), 0);
 
 
-        g.setColor(col);
+//        g.setColor(Color.YELLOW);
 //        g.drawString(strPrice,10,50);
 
         if (price.getBid() == 0 || price.getAsk() == Double.MAX_VALUE) {
             strPrice = "仲直未定";
         }
 
-        MappDraw.drawShadowString(g, strPrice, col, Color.BLACK, 10, 50);
+        MappDraw.drawShadowString(g, strPrice, Color.YELLOW, Color.BLACK, 10, 50);
 
         g.setColor(Color.GREEN);
         g.setFont(new Font(Font.DIALOG, Font.BOLD, 16));
-
 
         if (price.getAsk() == Double.MAX_VALUE) {
             MappDraw.drawShadowString(g, "売り注文なし", Color.GREEN, Color.black, 4, 80);
@@ -119,7 +123,6 @@ public class PriceMap {
         g.setColor(Color.RED);
 
         if (price.getBid() == 0) {
-            //g.drawString("売り注文なし",4,80);
             MappDraw.drawShadowString(g, "買い注文なし", Color.RED, Color.black, 4, 100);
         } else {
 
