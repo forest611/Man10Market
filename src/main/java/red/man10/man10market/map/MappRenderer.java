@@ -29,6 +29,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -1090,9 +1091,14 @@ public class MappRenderer extends MapRenderer implements Listener {
                 BufferedImage image = null;
 
                 try {
-                    image = ImageIO.read(new File(f.getAbsolutePath()));
+                    image = ImageIO.read(f);
                     imageMap.put(key,image);
-                    Bukkit.getLogger().info((key)+" registered.");
+
+                    if (image==null){
+                        Bukkit.getLogger().info((key) + " failed.");
+                    }else {
+                        Bukkit.getLogger().info((key)+" registered.");
+                    }
                     ret++;
 
                 } catch (Exception e) {
