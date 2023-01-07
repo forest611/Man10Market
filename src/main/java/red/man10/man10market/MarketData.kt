@@ -59,7 +59,7 @@ object MarketData {
 
         val highlow = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)
 
-        if (price.ask != Double.MAX_VALUE){
+        if (price.ask < Double.MAX_VALUE){
 
             if (price.price>last.price){
                 Bukkit.broadcast(Component.text( "${prefix}§a${item}: ${format(last.price)}から${format(price.price)}へ値上がりしました"))
@@ -86,8 +86,6 @@ object MarketData {
 
             Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
         }
-
-
     }
 
     //ユーザーのアイテム資産の総額を見る
