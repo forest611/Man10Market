@@ -17,7 +17,7 @@ public class PriceMap {
 
 
     //価格情報のキャッシュ
-    private static final Map<String, Market.PriceData> priceCache = new HashMap<>();
+    private static final Map<Integer, Market.PriceData> priceCache = new HashMap<>();
 
     public static void getPriceMap(Player p, String item) {
 
@@ -46,7 +46,7 @@ public class PriceMap {
                 int id = ItemBankAPI.INSTANCE.getItemData(item).getId();
 
                 //描画処理
-                MappRenderer.draw("price:" + id, 600, (String key, int mapId, Graphics2D g) -> drawPrice(g, item));
+                MappRenderer.draw("price:" + id, 600, (String key, int mapId, Graphics2D g) -> drawPrice(g, item,mapId));
 
                 //マップタッチ処理
                 MappRenderer.displayTouchEvent("price:" + id, (key, mapId, player, x, y) -> {
@@ -66,9 +66,9 @@ public class PriceMap {
 
 
     //      現在値を表示
-    static boolean drawPrice(Graphics2D g, String item) {
+    static boolean drawPrice(Graphics2D g, String item,int id) {
 
-        Market.PriceData cache = priceCache.get(item);
+        Market.PriceData cache = priceCache.get(id);
         Market.PriceData price = Market.INSTANCE.getPrice(item);
 
         //価格変化がなかった場合は、更新をしない
@@ -76,14 +76,14 @@ public class PriceMap {
             return false;
         }
 
-        priceCache.put(item,price);
+        priceCache.put(id,price);
 
         g.setColor(Color.GRAY);
         g.fillRect(0, 0, 128, 128);
 
-        int id = ItemBankAPI.INSTANCE.getItemData(item).getId();
+        int itemID = ItemBankAPI.INSTANCE.getItemData(item).getId();
 
-        MappDraw.drawImage(g,String.valueOf(id),64,20,64,64);
+        MappDraw.drawImage(g,String.valueOf(itemID),64,20,64,64);
 
         g.setColor(Color.WHITE);
 
