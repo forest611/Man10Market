@@ -64,6 +64,47 @@ public class PriceMap {
 
     }
 
+    static boolean drawTrade(Graphics2D g, String item, int id){
+
+        Market.PriceData cache = priceCache.get(id);
+        Market.PriceData price = Market.INSTANCE.getPrice(item);
+
+        //価格変化がなかった場合は、更新をしない
+        if (cache != null && cache.getPrice() == price.getPrice()){
+            return false;
+        }
+
+        priceCache.put(id,price);
+
+        g.setColor(Color.GRAY);
+        g.fillRect(0, 0, 128, 128);
+
+        int itemID = ItemBankAPI.INSTANCE.getItemData(item).getId();
+
+        MappDraw.drawImage(g,String.valueOf(itemID),72,10,32,32);
+
+        g.setColor(Color.WHITE);
+
+        int titleSize = 20;
+        if (item.length() > 6) {
+            titleSize = 12;
+        }
+
+        g.setFont(new Font(Font.DIALOG, Font.BOLD, titleSize));
+
+        MappDraw.drawShadowString(g, item, Color.WHITE, Color.BLACK, 5, 20);
+
+        g.setColor(Color.YELLOW);
+        g.fillRoundRect(16,40,44,80,8,8);
+        g.fillRoundRect(69,40,44,80,8,8);
+
+
+
+
+
+        return true;
+    }
+
 
     //      現在値を表示
     static boolean drawPrice(Graphics2D g, String item,int id) {
