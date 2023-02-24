@@ -236,12 +236,14 @@ object Market {
                         msg(p, "§cインベントリに空きがないため、アイテムバンクに収納しました")
                         ItemBankAPI.addItemAmount(uuid, uuid, item, tradeAmount)
                     } else {
-                        Bukkit.getScheduler().runTask(instance, Runnable { p?.inventory?.addItem(itemStack) })
+                        Bukkit.getScheduler().runTask(instance, Runnable {
+                            p?.inventory?.addItem(itemStack)
+                            Bukkit.getLogger().info("item:$itemStack hash:${itemStack.hashCode()}")
+                        })
                     }
 
                 } else {
                     ItemBankAPI.addItemAmount(uuid, uuid, item, tradeAmount)
-
                 }
 
                 remainAmount -= tradeAmount
