@@ -9,7 +9,7 @@ import red.man10.man10market.Man10Market
 import red.man10.man10market.Market
 import red.man10.man10market.Util
 
-class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "購入する") {
+class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "§a§lクリックしてアイテムを買う") {
 
     private val tradeLot = arrayOf(1, 2, 4, 8, 16, 32, 64)
 
@@ -39,7 +39,7 @@ class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "購入する") {
                     button.cmd(data.item!!.itemMeta.customModelData)
                 }
 
-                button.title("§e§l${it}個購入する (推定必要金額${Util.format(getRequirePrice(it, sells))}円)")
+                button.title("§e§l${it}個買う (予想必要金額${Util.format(getRequirePrice(it, sells))}円)")
 
                 val icon = button.icon()
                 icon.amount = it

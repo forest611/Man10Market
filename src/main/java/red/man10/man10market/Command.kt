@@ -13,7 +13,9 @@ import red.man10.man10market.Util.format
 import red.man10.man10market.Util.msg
 import red.man10.man10market.Util.prefix
 import red.man10.man10market.map.PriceMap
+import red.man10.man10market.menu.BuyMenu
 import red.man10.man10market.menu.MainMenu
+import red.man10.man10market.menu.SellMenu
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -305,6 +307,33 @@ object Command : CommandExecutor {
             "smallboard" -> {
                 if (!sender.hasPermission(USER)) return false
                 showSmallOrderBook(sender, args[1])
+            }
+
+            "sellmenu" ->{
+                if (sender !is Player) return false
+                if (!sender.hasPermission(USER)) {
+                    msg(sender,"§c§lマーケットにアクセスする権限がありません")
+                    return false
+                }
+                SellMenu(sender).open()
+                return true
+            }
+
+            "buymenu" ->{ //mce buymenu <id>
+                if (sender !is Player) return false
+
+                if (args.size != 2){
+                    return true
+                }
+
+                if (!sender.hasPermission(USER)) {
+                    msg(sender,"§c§lマーケットにアクセスする権限がありません")
+                    return false
+                }
+
+                BuyMenu(sender,args[1]).open()
+                return true
+
             }
 
 

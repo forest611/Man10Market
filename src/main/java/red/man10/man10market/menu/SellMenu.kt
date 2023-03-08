@@ -8,11 +8,11 @@ import red.man10.man10itembank.ItemData
 import red.man10.man10itembank.menu.MenuFramework
 import red.man10.man10market.Market
 
-class SellMenu(p: Player) : MenuFramework(p, 54, "§c§lアイテムを売却する") {
+class SellMenu(p: Player) : MenuFramework(p, 54, "§c§lアイテムを売る") {
 
     init {
         val putButton = Button(Material.RED_STAINED_GLASS_PANE)
-        putButton.title("§c§l全て売却")
+        putButton.title("§c§lクリックしてすべて売る")
         putButton.lore(mutableListOf("§c売却に失敗したアイテムは/mibに保存されます"))
 
         putButton.setClickAction { e ->
