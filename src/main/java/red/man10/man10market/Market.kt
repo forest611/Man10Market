@@ -2,6 +2,7 @@ package red.man10.man10market
 
 import org.bukkit.Bukkit
 import red.man10.man10bank.Bank
+import red.man10.man10bank.Man10Bank
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Man10Market.Companion.bankAPI
@@ -217,10 +218,15 @@ object Market {
                 //このループで取引する数量
                 val tradeAmount = if (firstOrder.lot > remainAmount) remainAmount else firstOrder.lot
 
-                if (!bankAPI.withdraw(uuid, tradeAmount * firstOrder.price, "Man10MarketBuy", "マーケット成行買い")) {
-                    msg(p, "§c§l銀行の残高が足りません！")
+                if (!Man10Bank.vault.withdraw(uuid,tradeAmount * firstOrder.price)){
+                    msg(p, "§c§ld§n電子マネー§c§ldの残高が足りません！")
                     return@add
                 }
+
+//                if (!bankAPI.withdraw(uuid, tradeAmount * firstOrder.price, "Man10MarketBuy", "マーケット成行買い")) {
+//                    msg(p, "§c§l銀行の残高が足りません！")
+//                    return@add
+//                }
 
                 if (asyncTradeOrder(firstOrder.orderID, tradeAmount) == null) {
                     Bukkit.getLogger().info("ErrorModifyOrder")
@@ -233,7 +239,7 @@ object Market {
                     itemStack.amount = tradeAmount
 
                     if (p?.inventory?.firstEmpty() == -1) {
-                        msg(p, "§cインベントリに空きがないため、アイテムバンクに収納しました")
+                        msg(p, "§cインベントリに空きがないため、アイテムバンク(/mib)に収納しました")
                         ItemBankAPI.addItemAmount(uuid, uuid, item, tradeAmount)
                     } else {
                         Bukkit.getScheduler().runTask(instance, Runnable {
@@ -312,7 +318,9 @@ object Market {
                     return@add
                 }
 
-                bankAPI.deposit(uuid, tradeAmount * firstOrder.price, "Man10MarketSell", "マーケット成行売り")
+//                bankAPI.deposit(uuid, tradeAmount * firstOrder.price, "Man10MarketSell", "マーケット成行売り")
+
+                Man10Bank.vault.deposit(uuid,tradeAmount * firstOrder.price)
 
                 remainAmount -= tradeAmount
 
