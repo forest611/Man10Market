@@ -228,6 +228,8 @@ object Market {
 //                    return@add
 //                }
 
+                msg(p, "§e電子マネーから${format(tradeAmount*firstOrder.price)}円支払いました")
+
                 if (asyncTradeOrder(firstOrder.orderID, tradeAmount) == null) {
                     Bukkit.getLogger().info("ErrorModifyOrder")
                     continue
@@ -325,6 +327,7 @@ object Market {
                 remainAmount -= tradeAmount
 
                 msg(p, "§e§l${tradeAmount}個売却")
+                msg(p, "§e電子マネーに${format(tradeAmount*firstOrder.price)}円追加されました")
                 asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行売り")
                 asyncLogTick(item, tradeAmount)
 
