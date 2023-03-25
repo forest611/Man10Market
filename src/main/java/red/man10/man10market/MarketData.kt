@@ -57,7 +57,7 @@ object MarketData {
 
         val price = Market.getPrice(item)
 
-        val highlow = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)
+        val highlow = highLowPriceCache[item]// ?: HighLow(0.0, Double.MAX_VALUE)
 
         if (price.ask < Double.MAX_VALUE){
 
@@ -71,20 +71,23 @@ object MarketData {
 
         }
 
-        //高値更新
-        if (highlow.high < price.bid) {
+        if (highlow != null){
+            //高値更新
+            if (highlow.high < price.bid) {
 
-            highLowPriceCache[item] = HighLow(price.bid, highlow.low)
+                highLowPriceCache[item] = HighLow(price.bid, highlow.low)
 
-            Bukkit.broadcast(Component.text("${prefix}§a§lマーケット速報！！${item}:${format(price.bid)}円 過去最高値更新！！！"))
-        }
+                Bukkit.broadcast(Component.text("${prefix}§a§lマーケット速報！！${item}:${format(price.bid)}円 過去最高値更新！！！"))
+            }
 
-        //安値更新
-        if (highlow.low > price.bid) {
+            //安値更新
+            if (highlow.low > price.bid) {
 
-            highLowPriceCache[item] = HighLow(highlow.high, price.bid)
+                highLowPriceCache[item] = HighLow(highlow.high, price.bid)
 
-            Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
+                Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
+            }
+
         }
     }
 
