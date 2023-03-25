@@ -270,7 +270,7 @@ object MarketData {
         return ((today / yesterday) - 1)
     }
 
-    private fun asyncWritePriceDataToCSV(){
+    fun asyncWritePriceDataToCSV(){
         Market.addJob {
 
             val csv = File(instance.dataFolder.path+"/price.csv")
@@ -278,9 +278,11 @@ object MarketData {
 
 
             csv.bufferedWriter().use { writer->
+
+                writer.write("アイテム名,仲直,売値,買値\n")
                 index.forEach { item ->
                     val price = Market.getPrice(item)
-                    writer.write("$item,${price.price},${price.ask},${price.bid}")
+                    writer.write("$item,${price.price},${price.ask},${price.bid}\n")
                 }
             }
         }

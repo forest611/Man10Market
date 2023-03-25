@@ -159,6 +159,8 @@ object Command : CommandExecutor {
                         sender.sendMessage("$it 価格:${price.price}円 売値:${price.ask}円 買値:${price.bid}円")
                     }
                 }
+
+                MarketData.asyncWritePriceDataToCSV()
             }
 
             "marketbuy" -> {
