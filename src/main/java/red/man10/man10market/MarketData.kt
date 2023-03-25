@@ -9,6 +9,8 @@ import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.prefix
+import java.io.File
+import java.io.Writer
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -70,6 +72,9 @@ object MarketData {
             }
 
         }
+
+        //価格情報をCSVに吐き出す
+        asyncWritePriceDataToCSV()
 
         if (highlow != null){
             //高値更新
@@ -264,6 +269,23 @@ object MarketData {
 
         return ((today / yesterday) - 1)
     }
+
+    private fun asyncWritePriceDataToCSV(){
+        Market.addJob {
+
+            val csv = File(instance.dataFolder.path+"/price.csv")
+            val index = Market.getItemIndex()
+
+
+            csv.bufferedWriter().use { writer->
+                index.forEach { item ->
+                    val price = Market.getPrice(item)
+                    writer.write("$item,${price.price},${price.ask},${price.bid}")
+                }
+            }
+        }
+    }
+
 
     data class MarketSeries(
         val open: Double = 0.0,
