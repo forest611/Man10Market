@@ -282,7 +282,10 @@ object MarketData {
                 writer.write("アイテム名,仲直,売値,買値\n")
                 index.forEach { item ->
                     val price = Market.getPrice(item)
-                    writer.write("$item,${price.price},${price.ask},${price.bid}\n")
+                    writer.write("$item," +
+                            "${String.format("%.0f",price.price)}," +
+                            "${String.format("%.0f",price.ask)}," +
+                            "${String.format("%.0f",price.bid)}\n")
                 }
             }
         }
