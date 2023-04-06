@@ -9,6 +9,8 @@ import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.prefix
+import java.io.File
+import java.io.Writer
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -57,7 +59,7 @@ object MarketData {
 
         val price = Market.getPrice(item)
 
-        val highlow = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)
+        val highlow = highLowPriceCache[item]// ?: HighLow(0.0, Double.MAX_VALUE)
 
         if (price.ask < Double.MAX_VALUE){
 
@@ -71,20 +73,26 @@ object MarketData {
 
         }
 
-        //高値更新
-        if (highlow.high < price.bid) {
+        //価格情報をCSVに吐き出す
+        asyncWritePriceDataToCSV()
 
-            highLowPriceCache[item] = HighLow(price.bid, highlow.low)
+        if (highlow != null){
+            //高値更新
+            if (highlow.high < price.bid) {
 
-            Bukkit.broadcast(Component.text("${prefix}§a§lマーケット速報！！${item}:${format(price.bid)}円 過去最高値更新！！！"))
-        }
+                highLowPriceCache[item] = HighLow(price.bid, highlow.low)
 
-        //安値更新
-        if (highlow.low > price.bid) {
+                Bukkit.broadcast(Component.text("${prefix}§a§lマーケット速報！！${item}:${format(price.bid)}円 過去最高値更新！！！"))
+            }
 
-            highLowPriceCache[item] = HighLow(highlow.high, price.bid)
+            //安値更新
+            if (highlow.low > price.bid) {
 
-            Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
+                highLowPriceCache[item] = HighLow(highlow.high, price.bid)
+
+                Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
+            }
+
         }
     }
 
@@ -261,6 +269,28 @@ object MarketData {
 
         return ((today / yesterday) - 1)
     }
+
+    fun asyncWritePriceDataToCSV(){
+        Market.addJob {
+
+            val csv = File(instance.dataFolder.path+"/price.csv")
+            val index = Market.getItemIndex()
+
+
+            csv.bufferedWriter().use { writer->
+
+                writer.write("アイテム名,仲直,売値,買値\n")
+                index.forEach { item ->
+                    val price = Market.getPrice(item)
+                    writer.write("$item," +
+                            "${String.format("%.0f",price.price)}," +
+                            "${String.format("%.0f",price.ask)}," +
+                            "${String.format("%.0f",price.bid)}\n")
+                }
+            }
+        }
+    }
+
 
     data class MarketSeries(
         val open: Double = 0.0,

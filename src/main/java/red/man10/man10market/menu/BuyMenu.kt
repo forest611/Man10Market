@@ -40,12 +40,15 @@ class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "§a§lクリック
                 }
 
                 button.title("§e§l${it}個買う (予想必要金額${Util.format(getRequirePrice(it, sells))}円)")
+                button.lore(mutableListOf("§cシフト左クリックで買うことができます"))
 
                 val icon = button.icon()
                 icon.amount = it
 
-                button.setClickAction { _ ->
-                    Market.sendMarketBuy(p.uniqueId, item, it, true)
+                button.setClickAction { e ->
+                    if (e.isLeftClick && e.isShiftClick){
+                        Market.sendMarketBuy(p.uniqueId, item, it, true)
+                    }
                 }
 
                 Bukkit.getScheduler().runTask(Man10Market.instance, Runnable { menu.addItem(icon) })

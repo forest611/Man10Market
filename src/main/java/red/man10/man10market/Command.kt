@@ -7,6 +7,7 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Man10Market.Companion.isMarketOpen
 import red.man10.man10market.Util.format
@@ -147,6 +148,19 @@ object Command : CommandExecutor {
                 showOrderBook(sender, args[1])
 
                 return true
+            }
+
+            "allprice"->{
+
+                Market.addJob {
+
+                    Market.getItemIndex().forEach {
+                        val price = Market.getPrice(it)
+                        sender.sendMessage("$it 価格:${price.price}円 売値:${price.ask}円 買値:${price.bid}円")
+                    }
+                }
+
+                MarketData.asyncWritePriceDataToCSV()
             }
 
             "marketbuy" -> {

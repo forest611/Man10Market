@@ -555,6 +555,11 @@ object Market {
     /////////////////////////////////
     //注文処理を順番に捌いていくキュー
     //////////////////////////////////
+
+    //      外部クラスからジョブを追加
+    fun addJob(job:()->Unit){
+        transactionQueue.add(job)
+    }
     fun runTransactionQueue() {
 
         //すでに起動していたら止める
