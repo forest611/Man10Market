@@ -73,9 +73,6 @@ object MarketData {
 
         }
 
-        //価格情報をCSVに吐き出す
-        asyncWritePriceDataToCSV()
-
         if (highlow != null){
             //高値更新
             if (highlow.high < price.bid) {
@@ -94,6 +91,10 @@ object MarketData {
             }
 
         }
+
+        //価格情報をCSVに吐き出す
+        asyncWritePriceDataToCSV()
+
     }
 
     //ユーザーのアイテム資産の総額を見る
