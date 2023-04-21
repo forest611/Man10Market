@@ -353,8 +353,13 @@ object Market {
                 return@add
             }
 
-            if (price <= 0.0) {
+            if (price < 1.0) {
                 msg(p.player, "§c§l値段を1円以上にしてください")
+                return@add
+            }
+
+            if (price!=price.toInt().toDouble()){
+                msg(p.player, "§c§l少数以下の設定はできません")
                 return@add
             }
 
@@ -407,8 +412,13 @@ object Market {
                 return@add
             }
 
-            if (price <= 0.0) {
+            if (price < 1.0) {
                 msg(p.player, "§c§l値段を1円以上にしてください")
+                return@add
+            }
+
+            if (price!=price.toInt().toDouble()){
+                msg(p.player, "§c§l少数以下の設定はできません")
                 return@add
             }
 

@@ -85,10 +85,7 @@ public class PriceMap {
 
         g.setColor(Color.WHITE);
 
-        int titleSize = 20;
-        if (item.length() > 6) {
-            titleSize = 12;
-        }
+        int titleSize = 13;
 
         g.setFont(new Font(Font.DIALOG, Font.BOLD, titleSize));
 
@@ -97,10 +94,6 @@ public class PriceMap {
         g.setColor(Color.YELLOW);
         g.fillRoundRect(16,40,44,80,8,8);
         g.fillRoundRect(69,40,44,80,8,8);
-
-
-
-
 
         return true;
     }
