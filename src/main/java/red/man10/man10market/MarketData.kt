@@ -55,7 +55,7 @@ object MarketData {
         while (rs.next()) {
             val item = rs.getString("item_id")
             val price = rs.getDouble("bid")
-            val cache = highLowPriceCache[item] ?: HighLow(0.0, Double.MAX_VALUE)//高値、安値の順番
+            val cache = highLowPriceCache[item] ?: HighLow(0.0, 0.0)//高値、安値の順番
 
             if (cache.high < price) {
                 highLowPriceCache[item] = HighLow(price, cache.low)
@@ -76,7 +76,7 @@ object MarketData {
 
         val highlow = highLowPriceCache[item]// ?: HighLow(0.0, Double.MAX_VALUE)
 
-        if (price.ask < Double.MAX_VALUE){
+        if (price.ask != 0.0){
 
             if (price.price>last.price){
                 Bukkit.broadcast(Component.text( "${prefix}§a${item}: ${format(last.price)}から${format(price.price)}へ値上がりしました"))

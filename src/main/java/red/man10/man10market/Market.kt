@@ -43,7 +43,7 @@ object Market {
     }
 
     fun getPrice(item: String): PriceData {
-        return priceCache[item] ?: PriceData(item, Double.MAX_VALUE, 0.0)
+        return priceCache[item] ?: PriceData(item, 0.0, 0.0)
     }
 
 
@@ -62,7 +62,7 @@ object Market {
         val sell = list.filter { f -> f.sell }
         val buy = list.filter { f -> f.buy }
 
-        ask = if (sell.isEmpty()) Double.MAX_VALUE else sell.minOf { it.price }
+        ask = if (sell.isEmpty()) 0.0 else sell.minOf { it.price }
         bid = if (buy.isEmpty()) 0.0 else buy.maxOf { it.price }
 
         //nullの場合は現在の価格を
@@ -430,7 +430,8 @@ object Market {
                 return@add
             }
 
-            if (price > nowPrice.bid * 10 && nowPrice.bid != 0.0 && nowPrice.ask >= Double.MAX_VALUE) {
+            //相場の不正対策
+            if (price > nowPrice.bid * 10 && nowPrice.bid != 0.0 && nowPrice.ask == 0.0) {
                 msg(p.player, "§c§l売り注文がない状態で買値の10倍以上の価格は注文できません")
                 return@add
             }
