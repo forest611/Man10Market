@@ -12,6 +12,7 @@ class Man10Market : JavaPlugin() {
         lateinit var bankAPI: BankAPI
 
         var isMarketOpen = false
+        var csvPath = ""
     }
 
 
@@ -42,6 +43,7 @@ class Man10Market : JavaPlugin() {
         reloadConfig()
 
         isMarketOpen = config.getBoolean("MarketOpen", false)
+        csvPath = config.getString("CSVPath","")?:""
     }
 
     fun saveMarketConfig() {

@@ -60,3 +60,64 @@ create table stock_table
 create index Stock_table_uuid_stock_name_index
     on Stock_table (uuid, stock_name);
 
+
+create table hour_table
+(
+    id      int auto_increment
+        primary key,
+    item_id varchar(32) null,
+    open    double      null,
+    high    double      null,
+    low     double      null,
+    close   double      null,
+    year    int         null,
+    month   int         null,
+    day     int         null,
+    hour    int         null,
+    date    datetime    null,
+    volume  int         null
+);
+
+create index hour_table_item_id_year_month_day_hour_index
+    on hour_table (item_id, year, month, day, hour, date);
+
+create table day_table
+(
+    id      int auto_increment
+        primary key,
+    item_id varchar(32) null,
+    open    double      null,
+    high    double      null,
+    low     double      null,
+    close   double      null,
+    year    int         null,
+    month   int         null,
+    day     int         null,
+    date    datetime    null,
+    volume  int         null
+);
+
+create index hour_table_item_id_year_month_day_hour_index
+    on hour_table (item_id, year, month, day, hour, date);
+
+
+
+SELECT
+    DATE_FORMAT(date, '%Y-%m-%d %H:00:00') as 日付,
+    SUBSTRING_INDEX(GROUP_CONCAT(CAST(bid AS CHAR) ORDER BY date), ',', 1) AS 始値,
+    MIN(bid) AS 安値,
+    MAX(bid) AS 高値,
+    SUBSTRING_INDEX(GROUP_CONCAT(CAST(bid AS CHAR) ORDER BY date DESC), ',', 1) AS 終値,
+    SUM(volume) AS 出来高,
+    DATE(date) AS day,
+    HOUR(date) AS hour
+FROM
+    tick_table
+where
+    item_id='投票パール'
+GROUP BY
+    day,
+    hour
+ORDER BY
+    day,
+    hour;

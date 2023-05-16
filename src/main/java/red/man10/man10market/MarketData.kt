@@ -2,18 +2,21 @@ package red.man10.man10market
 
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
-import org.yaml.snakeyaml.error.Mark
 import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.prefix
+import java.io.BufferedWriter
 import java.io.File
-import java.io.Writer
+import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.HashMap
+import kotlin.math.max
+import kotlin.math.min
 
 
 ///
@@ -23,12 +26,24 @@ object MarketData {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
 
-    private val marketSeriesCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
+    private val dailyOHLCCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
+    private val hourlyOHLCCache = ConcurrentHashMap<String,Pair<MarketSeries,Date>>()
     private val marketValueCache = ConcurrentHashMap<String, Double>()
     private val highLowPriceCache = ConcurrentHashMap<String, HighLow>()//高値安値
 
+    private val timer = Timer()
+
     init {
-        Thread { loadHighLowPrice() }.start()
+        Thread {
+            loadHighLowPrice()
+        }.start()
+
+        timer.schedule(
+            object : TimerTask(){
+                override fun run() {
+                    Market.getItemIndex().forEach { checkHourOHLC(it) }
+                }
+            },0,60*1000)
     }
 
 
@@ -75,6 +90,8 @@ object MarketData {
 
         //価格情報をCSVに吐き出す
         asyncWritePriceDataToCSV()
+        //OHLCの確認
+        checkHourOHLC(item)
 
         if (highlow != null){
             //高値更新
@@ -175,43 +192,6 @@ object MarketData {
 
     }
 
-    //今日の(未確定)OHLCを見る
-    fun getTodayOHLC(item: String): MarketSeries {
-
-        val dateString = sdf.format(Date())
-        val key = Pair(item, dateString)
-
-        //キャッシュがあるならそっちをとる
-        if (marketSeriesCache[key] != null) {
-            return marketSeriesCache[key]!!
-        }
-
-
-        val mysql = MySQLManager(instance, "Man10MarketData")
-        val rs = mysql.query(
-            "select bid,volume from tick_table " +
-                    "where item_id='${item}' and date>'${dateString}';"
-        ) ?: return MarketSeries()
-
-        val list = mutableListOf<Double>()
-        var volume = 0
-
-        while (rs.next()) {
-            list.add(rs.getDouble("bid"))
-            volume += rs.getInt("volume")
-        }
-
-        rs.close()
-        mysql.close()
-
-        if (list.isEmpty())
-            return MarketSeries()
-
-        val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
-        marketSeriesCache[key] = ret
-
-        return ret
-    }
 
     fun getYesterdayOHLC(item: String): MarketSeries {
 
@@ -226,8 +206,8 @@ object MarketData {
         val key = Pair(item, sdf.format(yesterday))
 
         //キャッシュがあるならそっちをとる
-        if (marketSeriesCache[key] != null) {
-            return marketSeriesCache[key]!!
+        if (dailyOHLCCache[key] != null) {
+            return dailyOHLCCache[key]!!
         }
 
 
@@ -252,7 +232,7 @@ object MarketData {
             return MarketSeries()
 
         val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
-        marketSeriesCache[key] = ret
+        dailyOHLCCache[key] = ret
 
         return ret
     }
@@ -291,14 +271,82 @@ object MarketData {
         }
     }
 
+    fun saveHour(item: String){
+
+        val nowPrice = Market.getPrice(item).bid
+        val data = hourlyOHLCCache[item]?: Pair(MarketSeries(nowPrice), Date())
+        val series = data.first
+
+        val last = Calendar.getInstance()
+        last.time = data.second
+
+        Market.addJob {sql ->
+
+
+
+            sql.execute("INSERT INTO man10_market.hour_table " +
+                    "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
+                    "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
+                    "${last.get(Calendar.YEAR)}, ${last.get(Calendar.MONTH)}, ${last.get(Calendar.DAY_OF_MONTH)}, ${last.get(Calendar.HOUR)}, now(), 0)")
+
+
+
+
+        }
+    }
+
+    fun checkHourOHLC(item:String){
+
+        val nowPrice = Market.getPrice(item).bid
+        val data = hourlyOHLCCache[item]?: Pair(MarketSeries(nowPrice), Date())
+        val series = data.first
+
+        series.high = max(series.high,nowPrice)
+        series.low = min(series.low,nowPrice)
+        series.close = nowPrice
+
+        val last = Calendar.getInstance()
+        last.time = data.second
+        val now = Calendar.getInstance()
+        now.time = Date()
+
+        //時間の変更があったら確定してCSVに書き込み
+        if (last.get(Calendar.HOUR) != now.get(Calendar.HOUR)){
+
+            asyncWriteOHLC(item,last.time,series,"hour")
+            //終値を始値にして新しいキャッシュを作る
+            hourlyOHLCCache.remove(item)
+            return
+        }
+
+        //高値安値を修正して保存
+        hourlyOHLCCache[item] = Pair(series,last.time)
+    }
+
+    private fun asyncWriteOHLC(item:String,date:Date,data:MarketSeries,tf:String){
+
+        Thread{
+
+            val id = ItemBankAPI.getItemData(item)?.id?:-1
+            val csvFile = File(instance.dataFolder.path+"/${tf}/${id}.csv")
+            val writer = BufferedWriter(FileWriter(csvFile,true))
+
+            if (!csvFile.exists()){
+                writer.write("date,open,high,low,close,volume\n")
+            }
+            writer.write("${SimpleDateFormat("yyyy-MM-dd HH:00:00").format(date)},${data.open},${data.high},${data.low},${data.close},${data.volume}")
+            writer.close()
+        }.start()
+
+    }
 
     data class MarketSeries(
-        val open: Double = 0.0,
-        val high: Double = 0.0,
-        val low: Double = 0.0,
-        val close: Double = 0.0,
-        var volume: Int = 0,
-        var tickVolume: Int = 0
+        var open: Double = 0.0,
+        var high: Double = 0.0,
+        var low: Double = 0.0,
+        var close: Double = 0.0,
+        var volume: Int = 0,    //取引アイテム数
+        var tickVolume: Int = 0 //Tick数
     )
 
     data class HighLow(

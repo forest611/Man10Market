@@ -20,7 +20,7 @@ import kotlin.math.floor
  */
 object Market {
 
-    private val transactionQueue = LinkedBlockingQueue<() -> Unit>()
+    private val transactionQueue = LinkedBlockingQueue<(mysql:MySQLManager) -> Unit>()
     private var transactionThread = Thread { transaction() }
     private val priceCache = ConcurrentHashMap<String, PriceData>()
     private val mysql = MySQLManager(instance, "Man10MarketQueue")
@@ -28,7 +28,7 @@ object Market {
     init {
         runTransactionQueue()
         //キャッシュ読み込み
-        getItemIndex().forEach { asyncLogTick(it, 0) }
+        getItemIndex().forEach { syncLogTick(it, 0) }
     }
 
 
@@ -48,12 +48,12 @@ object Market {
 
 
     //価格変更があったら呼び出す
-    private fun asyncLogTick(item: String, volume: Int) {
+    private fun syncLogTick(item: String, volume: Int) {
 
         val ask: Double
         val bid: Double
 
-        val list = asyncGetOrderList(item)
+        val list = syncGetOrderList(item)
 
         if (list.isNullOrEmpty()) {
             return
@@ -92,7 +92,7 @@ object Market {
     }
 
     //取引があったら呼ぶ
-    private fun asyncRecordLog(uuid: UUID, item: String, amount: Int, price: Double, type: String) {
+    private fun syncRecordLog(uuid: UUID, item: String, amount: Int, price: Double, type: String) {
 
         val p = Bukkit.getOfflinePlayer(uuid)
         mysql.execute(
@@ -103,7 +103,7 @@ object Market {
 
     //指値注文を取得する
     @Synchronized
-    private fun asyncGetOrderList(item: String): List<OrderData>? {
+    private fun syncGetOrderList(item: String): List<OrderData>? {
 
         if (!isMarketItem(item))
             return null
@@ -135,7 +135,7 @@ object Market {
     }
 
     fun getOrderList(item: String, callback: (List<OrderData>?) -> Unit) {
-        transactionQueue.add { callback.invoke(asyncGetOrderList(item)) }
+        transactionQueue.add { callback.invoke(syncGetOrderList(item)) }
     }
 
     fun getUserOrderList(uuid: UUID, callback: (List<OrderData>) -> Unit) {
@@ -207,7 +207,7 @@ object Market {
             while (remainAmount > 0) {
 
                 //売り指値の最安値を取得
-                firstOrder = asyncGetOrderList(item)?.filter { it.sell }?.minByOrNull { it.price }
+                firstOrder = syncGetOrderList(item)?.filter { it.sell }?.minByOrNull { it.price }
 
                 //指値が亡くなった
                 if (firstOrder == null) {
@@ -230,7 +230,7 @@ object Market {
 
                 msg(p, "§e電子マネーから${format(tradeAmount*firstOrder.price)}円支払いました")
 
-                if (asyncTradeOrder(firstOrder.orderID, tradeAmount) == null) {
+                if (syncTradeOrder(firstOrder.orderID, tradeAmount) == null) {
                     Bukkit.getLogger().info("ErrorModifyOrder")
                     continue
                 }
@@ -257,8 +257,8 @@ object Market {
                 remainAmount -= tradeAmount
 
                 msg(p, "§e§l${tradeAmount}個購入")
-                asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行買い")
-                asyncLogTick(item, tradeAmount)
+                syncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行買い")
+                syncLogTick(item, tradeAmount)
             }
         }
     }
@@ -288,7 +288,7 @@ object Market {
             while (remainAmount > 0) {
 
                 //買い指値の最高値
-                firstOrder = asyncGetOrderList(item)?.filter { it.buy }?.maxByOrNull { it.price }
+                firstOrder = syncGetOrderList(item)?.filter { it.buy }?.maxByOrNull { it.price }
 
                 //指値が亡くなった
                 if (firstOrder == null) {
@@ -315,7 +315,7 @@ object Market {
                     return@add
                 }
 
-                if (asyncTradeOrder(firstOrder.orderID, tradeAmount) == null) {
+                if (syncTradeOrder(firstOrder.orderID, tradeAmount) == null) {
                     Bukkit.getLogger().info("ErrorModifyOrder")
                     return@add
                 }
@@ -328,8 +328,8 @@ object Market {
 
                 msg(p, "§e§l${tradeAmount}個売却")
                 msg(p, "§e電子マネーに${format(tradeAmount*firstOrder.price)}円追加されました")
-                asyncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行売り")
-                asyncLogTick(item, tradeAmount)
+                syncRecordLog(uuid, item, tradeAmount, firstOrder.price, "成行売り")
+                syncLogTick(item, tradeAmount)
 
             }
         }
@@ -385,12 +385,12 @@ object Market {
             )
 
             if (fixedPrice > nowPrice.bid) {
-                asyncLogTick(item, 0)
+                syncLogTick(item, 0)
             }
 
             msg(p.player, "§b§l指値買§e§lを発注しました")
-            asyncRecordLog(uuid, item, lot, price, "指値買い")
-            asyncLogTick(item, 0)
+            syncRecordLog(uuid, item, lot, price, "指値買い")
+            syncLogTick(item, 0)
 
         }
 
@@ -448,12 +448,12 @@ object Market {
                 )
 
                 if (fixedPrice < nowPrice.ask) {
-                    asyncLogTick(item, 0)
+                    syncLogTick(item, 0)
                 }
 
                 msg(p.player, "§c§l指値売§e§lを発注しました")
-                asyncRecordLog(uuid, item, lot, price, "指値売り")
-                asyncLogTick(item, 0)
+                syncRecordLog(uuid, item, lot, price, "指値売り")
+                syncLogTick(item, 0)
 
             }
         }
@@ -501,8 +501,8 @@ object Market {
             mysql.execute("DELETE from order_table where id = ${id};")
 
             //値段の変更があるかもしれないので呼ぶ
-            asyncLogTick(data.item, 0)
-            asyncRecordLog(data.uuid, data.item, data.lot, data.price, "指値取り消し")
+            syncLogTick(data.item, 0)
+            syncRecordLog(data.uuid, data.item, data.lot, data.price, "指値取り消し")
 
         }
 
@@ -510,7 +510,7 @@ object Market {
     }
 
     //成りが入った時に指定個数指値を減らす(null失敗、-1個数問題)
-    private fun asyncTradeOrder(id: Int, amount: Int): Int? {
+    private fun syncTradeOrder(id: Int, amount: Int): Int? {
 
         val rs = mysql.query("select * from order_table where id = $id;")
 
@@ -545,7 +545,7 @@ object Market {
 
         }
 
-        asyncLogTick(data.item, amount)
+        syncLogTick(data.item, amount)
 
         //指値買い
         if (data.buy) {
@@ -557,7 +557,7 @@ object Market {
             bankAPI.deposit(data.uuid, (amount * data.price), "Man10MarketOrderSell", "マーケット指値売り")
         }
 
-        asyncRecordLog(data.uuid, data.item, amount, data.price, "指値調整")
+        syncRecordLog(data.uuid, data.item, amount, data.price, "指値調整")
 
         return newAmount
     }
@@ -567,7 +567,7 @@ object Market {
     //////////////////////////////////
 
     //      外部クラスからジョブを追加
-    fun addJob(job:()->Unit){
+    fun addJob(job:(mysql:MySQLManager)->Unit){
         transactionQueue.add(job)
     }
     fun runTransactionQueue() {
@@ -590,7 +590,7 @@ object Market {
             try {
 
                 val action = transactionQueue.take()
-                action.invoke()
+                action.invoke(mysql)
 
             } catch (e: InterruptedException) {
                 Bukkit.getLogger().info("取引スレッドを停止しました")
