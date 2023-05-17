@@ -28,8 +28,8 @@ class Man10Market : JavaPlugin() {
         getCommand("mstock")!!.setExecutor(Stock)
 
         MappRenderer.setup(this)
-
         loadMarketConfig()
+        MarketData.init()
     }
 
     override fun onDisable() {

@@ -8,9 +8,9 @@ import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.prefix
-import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
+import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -33,7 +33,8 @@ object MarketData {
 
     private val timer = Timer()
 
-    init {
+    //onEnableでよぶ
+    fun init(){
         Thread {
             loadHighLowPrice()
         }.start()
@@ -41,9 +42,13 @@ object MarketData {
         timer.schedule(
             object : TimerTask(){
                 override fun run() {
-                    Market.getItemIndex().forEach { checkHourOHLC(it) }
+                    Market.getItemIndex().forEach {
+                        saveHour(it)
+                        writeCSV(it,"hour")
+                    }
                 }
-            },0,60*1000)
+            },0,60*1000*5
+        )
     }
 
 
@@ -91,7 +96,8 @@ object MarketData {
         //価格情報をCSVに吐き出す
         asyncWritePriceDataToCSV()
         //OHLCの確認
-        checkHourOHLC(item)
+//        checkHourOHLC(item)
+        saveHour(item)
 
         if (highlow != null){
             //高値更新
@@ -250,12 +256,12 @@ object MarketData {
         return ((today / yesterday) - 1)
     }
 
+    //現在値をCSVに書き込む
     fun asyncWritePriceDataToCSV(){
         Market.addJob {
 
             val csv = File(instance.dataFolder.path+"/price.csv")
             val index = Market.getItemIndex()
-
 
             csv.bufferedWriter().use { writer->
 
@@ -271,73 +277,86 @@ object MarketData {
         }
     }
 
-    fun saveHour(item: String){
+    //一時間足のデータをDBに登録
+    fun saveHour(item: String, volume: Int = 0){
 
         val nowPrice = Market.getPrice(item).bid
-        val data = hourlyOHLCCache[item]?: Pair(MarketSeries(nowPrice), Date())
+        val data = hourlyOHLCCache[item]?: Pair(MarketSeries(nowPrice,nowPrice,nowPrice,nowPrice), Date())
         val series = data.first
 
         val last = Calendar.getInstance()
         last.time = data.second
+
+        val year = last.get(Calendar.YEAR)
+        val month = last.get(Calendar.MONTH)
+        val day = last.get(Calendar.DAY_OF_MONTH)
+        val hour = last.get(Calendar.HOUR)
+
+        val high = max(data.first.high,nowPrice)
+        val low = min(data.first.low,nowPrice)
+
+        series.high = high
+        series.low = low
+        series.close = nowPrice
+        series.volume += volume
 
         Market.addJob {sql ->
 
+            val rs = sql.query("SELECT * from hour_table where " +
+                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
 
+            if (rs == null || !rs.next()){
+                sql.execute("INSERT INTO hour_table " +
+                        "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
+                        "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
+                        "${year}, ${month}, ${day}, ${hour}, now(), 0)")
 
-            sql.execute("INSERT INTO man10_market.hour_table " +
-                    "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
-                    "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
-                    "${last.get(Calendar.YEAR)}, ${last.get(Calendar.MONTH)}, ${last.get(Calendar.DAY_OF_MONTH)}, ${last.get(Calendar.HOUR)}, now(), 0)")
-
-
-
-
-        }
-    }
-
-    fun checkHourOHLC(item:String){
-
-        val nowPrice = Market.getPrice(item).bid
-        val data = hourlyOHLCCache[item]?: Pair(MarketSeries(nowPrice), Date())
-        val series = data.first
-
-        series.high = max(series.high,nowPrice)
-        series.low = min(series.low,nowPrice)
-        series.close = nowPrice
-
-        val last = Calendar.getInstance()
-        last.time = data.second
-        val now = Calendar.getInstance()
-        now.time = Date()
-
-        //時間の変更があったら確定してCSVに書き込み
-        if (last.get(Calendar.HOUR) != now.get(Calendar.HOUR)){
-
-            asyncWriteOHLC(item,last.time,series,"hour")
-            //終値を始値にして新しいキャッシュを作る
-            hourlyOHLCCache.remove(item)
-            return
-        }
-
-        //高値安値を修正して保存
-        hourlyOHLCCache[item] = Pair(series,last.time)
-    }
-
-    private fun asyncWriteOHLC(item:String,date:Date,data:MarketSeries,tf:String){
-
-        Thread{
-
-            val id = ItemBankAPI.getItemData(item)?.id?:-1
-            val csvFile = File(instance.dataFolder.path+"/${tf}/${id}.csv")
-            val writer = BufferedWriter(FileWriter(csvFile,true))
-
-            if (!csvFile.exists()){
-                writer.write("date,open,high,low,close,volume\n")
+                hourlyOHLCCache.remove(item)
+                sql.close()
+                return@addJob
             }
-            writer.write("${SimpleDateFormat("yyyy-MM-dd HH:00:00").format(date)},${data.open},${data.high},${data.low},${data.close},${data.volume}")
-            writer.close()
-        }.start()
 
+            rs.close()
+            sql.close()
+
+            //価格情報の更新
+            sql.execute("UPDATE INTO hour_table SET" +
+                        "high=$high,low=$low,close=$nowPrice,volume=${series.volume} where " +
+                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
+
+            hourlyOHLCCache[item] = Pair(series,data.second)
+        }
+    }
+
+    private fun writeCSV(item:String, tf:String){
+
+        Market.addJob {sql ->
+            val id = ItemBankAPI.getItemData(item)?.id?:-1
+            val rs = sql.query("SELECT date,open,high,low,close,volume from ${tf}_table where item_id='$item'")?:return@addJob
+
+            try {
+                val csv = File(instance.dataFolder.path+"/$tf/$id.csv")
+                val writer = FileWriter(csv)
+                writer.write("date,open,high,low,close,volume\n")
+
+                while (rs.next()){
+                    val date = rs.getDate("date")
+                    val open = rs.getDouble("open")
+                    val high = rs.getDouble("high")
+                    val low = rs.getDouble("low")
+                    val close = rs.getDouble("close")
+                    val volume = rs.getInt("volume")
+                    writer.write("${SimpleDateFormat("yyyy-MM-dd HH:00:00").format(date)}," +
+                            "${open},${high},${low},${close},${volume}")
+                }
+
+                rs.close()
+                sql.close()
+                writer.close()
+            }catch (e:Exception){
+                Bukkit.getLogger().warning(e.message)
+            }
+        }
     }
 
     data class MarketSeries(
