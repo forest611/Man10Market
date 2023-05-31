@@ -37,6 +37,10 @@ object Market {
         return ItemBankAPI.getItemIndexList()
     }
 
+    fun getItemNumber(item:String):Int{
+        return ItemBankAPI.getItemData(item)?.id?:0
+    }
+
     //取引アイテムかどうか
     private fun isMarketItem(item: String): Boolean {
         return getItemIndex().contains(item)

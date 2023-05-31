@@ -3,18 +3,15 @@ package red.man10.man10market
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import red.man10.man10bank.MySQLManager
-import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10itembank.ItemData
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
 import red.man10.man10market.Util.prefix
 import java.io.File
 import java.io.FileWriter
-import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.HashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -24,8 +21,8 @@ import kotlin.math.min
 ///
 object MarketData {
 
-    private val dailyOHLCCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
-    private val hourlyOHLCCache = ConcurrentHashMap<String,Pair<MarketSeries,Date>>()
+    private val dailyCandleCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
+    private val hourlyCandleCache = ConcurrentHashMap<String,Pair<MarketSeries,Date>>()
     private val marketValueCache = ConcurrentHashMap<String, Double>()
     private val highLowPriceCache = ConcurrentHashMap<String, HighLow>()//高値安値
 
@@ -33,9 +30,7 @@ object MarketData {
 
     //onEnableでよぶ
     fun init(){
-        Thread {
-            loadHighLowPrice()
-        }.start()
+        Thread { loadHighLowPrice() }.start()
 
         timer.schedule(
             object : TimerTask(){
@@ -44,9 +39,12 @@ object MarketData {
                         saveHour(it)
                         writeCSV(it,"hour")
                     }
+                    Bukkit.getLogger().info("1時間足の値を保存しました")
                 }
-            },0,60*1000*5
+            },0,1000*60
         )
+
+        asyncWriteDictionaryCSV()
     }
 
 
@@ -209,8 +207,8 @@ object MarketData {
         val key = Pair(item, sdf.format(yesterday))
 
         //キャッシュがあるならそっちをとる
-        if (dailyOHLCCache[key] != null) {
-            return dailyOHLCCache[key]!!
+        if (dailyCandleCache[key] != null) {
+            return dailyCandleCache[key]!!
         }
 
         val mysql = MySQLManager(instance, "Man10MarketData")
@@ -234,7 +232,7 @@ object MarketData {
             return MarketSeries()
 
         val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
-        dailyOHLCCache[key] = ret
+        dailyCandleCache[key] = ret
 
         return ret
     }
@@ -273,18 +271,32 @@ object MarketData {
         }
     }
 
+    //id,アイテム名の辞書を書き込む
+    private fun asyncWriteDictionaryCSV(){
+        Market.addJob {
+            val csv = File(instance.dataFolder.path+"/id_list.csv")
+            val index = Market.getItemIndex()
+
+            csv.bufferedWriter().use { writer ->
+                writer.write("id,アイテム名\n")
+                index.forEach { writer.write("${Market.getItemNumber(it)},${it}\n") }
+
+            }
+        }
+    }
+
     //一時間足のデータをDBに登録
     fun saveHour(item: String, volume: Int = 0){
 
         val nowPrice = Market.getPrice(item).bid
-        val data = hourlyOHLCCache[item]?: Pair(MarketSeries(nowPrice,nowPrice,nowPrice,nowPrice), Date())
+        val data = hourlyCandleCache[item]?: Pair(MarketSeries(nowPrice,nowPrice,nowPrice,nowPrice), Date())
         val series = data.first
 
         val last = Calendar.getInstance()
         last.time = data.second
 
         val year = last.get(Calendar.YEAR)
-        val month = last.get(Calendar.MONTH)
+        val month = last.get(Calendar.MONTH)+1
         val day = last.get(Calendar.DAY_OF_MONTH)
         val hour = last.get(Calendar.HOUR)
 
@@ -293,8 +305,6 @@ object MarketData {
 
         series.high = high
         series.low = low
-        series.close = nowPrice
-        series.volume += volume
 
         Market.addJob {sql ->
 
@@ -308,7 +318,7 @@ object MarketData {
                         "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
                         "${year}, ${month}, ${day}, ${hour}, now(), ${volume})")
 
-                hourlyOHLCCache.remove(item)
+                hourlyCandleCache.remove(item)
                 sql.close()
                 return@addJob
             }
@@ -318,17 +328,17 @@ object MarketData {
 
             //価格情報の更新
             sql.execute("UPDATE hour_table SET " +
-                        "high=$high,low=$low,close=$nowPrice,volume=${series.volume} where " +
+                        "high=$high,low=$low,close=$nowPrice,volume=volume+${volume} where " +
                     "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
 
-            hourlyOHLCCache[item] = Pair(series,data.second)
+            hourlyCandleCache[item] = Pair(series,data.second)
         }
     }
 
     private fun writeCSV(item:String, tf:String){
 
         Market.addJob {sql ->
-            val id = ItemBankAPI.getItemData(item)?.id?:-1
+            val id = Market.getItemNumber(item)
             val rs = sql.query("SELECT date,open,high,low,close,volume from ${tf}_table where item_id='$item'")?:return@addJob
 
             try {
@@ -343,14 +353,14 @@ object MarketData {
                 writer.write("date,open,high,low,close,volume\n")
 
                 while (rs.next()){
-                    val date = rs.getDate("date")
+                    val date = rs.getTimestamp("date")
                     val open = rs.getDouble("open")
                     val high = rs.getDouble("high")
                     val low = rs.getDouble("low")
                     val close = rs.getDouble("close")
                     val volume = rs.getInt("volume")
                     writer.write("${SimpleDateFormat("yyyy-MM-dd HH:00:00").format(date)}," +
-                            "${open},${high},${low},${close},${volume}")
+                            "${open},${high},${low},${close},${volume}\n")
                 }
 
                 rs.close()
