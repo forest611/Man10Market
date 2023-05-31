@@ -508,34 +508,34 @@ object Command : CommandExecutor {
 
 
 
-            val yesterday = MarketData.getYesterdayOHLC(item)
-            val percentage = MarketData.getPercentageChange(item) * 100
-            val marketValue = MarketData.getMarketValue(item)
-            val percentageText =
-                "§b§l前日比:${if (percentage > 0.0) "§a§l" else if (percentage < 0.0) "§c§l" else "§f§l"}${
-                    format(
-                        percentage,
-                        2
-                    )
-                }%"
-
-            msg(p, "")
-            p.sendMessage(
-                text("$prefix$percentageText")
-                    .hoverEvent(
-                        HoverEvent.showText(
-                            text(
-                                "§e§l前日データ\n" +
-                                        "§e§l始値:${format(yesterday.open)}\n" +
-                                        "§e§l高値:${format(yesterday.high)}\n" +
-                                        "§e§l安値:${format(yesterday.low)}\n" +
-                                        "§e§l終値:${format(yesterday.close)}\n" +
-                                        "§e§l出来高:${yesterday.volume}個\n" +
-                                        "§e§l時価総額:${format(marketValue)}円"
-                            )
-                        )
-                    )
-            )
+//            val yesterday = MarketData.getYesterdayOHLC(item)
+//            val percentage = MarketData.getPercentageChange(item) * 100
+//            val marketValue = MarketData.getMarketValue(item)
+//            val percentageText =
+//                "§b§l前日比:${if (percentage > 0.0) "§a§l" else if (percentage < 0.0) "§c§l" else "§f§l"}${
+//                    format(
+//                        percentage,
+//                        2
+//                    )
+//                }%"
+//
+//            msg(p, "")
+//            p.sendMessage(
+//                text("$prefix$percentageText")
+//                    .hoverEvent(
+//                        HoverEvent.showText(
+//                            text(
+//                                "§e§l前日データ\n" +
+//                                        "§e§l始値:${format(yesterday.open)}\n" +
+//                                        "§e§l高値:${format(yesterday.high)}\n" +
+//                                        "§e§l安値:${format(yesterday.low)}\n" +
+//                                        "§e§l終値:${format(yesterday.close)}\n" +
+//                                        "§e§l出来高:${yesterday.volume}個\n" +
+//                                        "§e§l時価総額:${format(marketValue)}円"
+//                            )
+//                        )
+//                    )
+//            )
 
             msg(p, "")
 

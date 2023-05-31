@@ -23,7 +23,7 @@ object MarketData {
 
     private val dailyCandleCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
     private val hourlyCandleCache = ConcurrentHashMap<String,Pair<MarketSeries,Date>>()
-    private val marketValueCache = ConcurrentHashMap<String, Double>()
+//    private val marketValueCache = ConcurrentHashMap<String, Double>()
     private val highLowPriceCache = ConcurrentHashMap<String, HighLow>()//高値安値
 
     private val timer = Timer()
@@ -152,103 +152,103 @@ object MarketData {
     }
 
     //時価総額を取得
-    fun getMarketValue(item: String): Double {
+//    fun getMarketValue(item: String): Double {
+//
+//        if (marketValueCache[item] != null) {
+//            return marketValueCache[item]!!
+//        }
+//
+//        val mysql = MySQLManager(instance, "Man10MarketData")
+//        val rs = mysql.query("select sum(amount) from item_storage where item_key='$item';") ?: return 0.0
+//
+//        if (!rs.next()) {
+//            rs.close()
+//            mysql.close()
+//            return 0.0
+//        }
+//
+//        var total = rs.getInt(1)
+//
+//        rs.close()
+//        mysql.close()
+//
+//        val rs2 = mysql.query("select sum(lot) from order_table where item_id='$item' and sell=1;") ?: return 0.0
+//
+//        if (!rs2.next()) {
+//            rs2.close()
+//            mysql.close()
+//            return 0.0
+//        }
+//
+//        total += rs2.getInt(1)
+//
+//        rs2.close()
+//        mysql.close()
+//
+//        val bid = Market.getPrice(item).bid
+//
+//        marketValueCache[item] = bid * total
+//
+//        return bid * total
+//
+//    }
 
-        if (marketValueCache[item] != null) {
-            return marketValueCache[item]!!
-        }
-
-        val mysql = MySQLManager(instance, "Man10MarketData")
-        val rs = mysql.query("select sum(amount) from item_storage where item_key='$item';") ?: return 0.0
-
-        if (!rs.next()) {
-            rs.close()
-            mysql.close()
-            return 0.0
-        }
-
-        var total = rs.getInt(1)
-
-        rs.close()
-        mysql.close()
-
-        val rs2 = mysql.query("select sum(lot) from order_table where item_id='$item' and sell=1;") ?: return 0.0
-
-        if (!rs2.next()) {
-            rs2.close()
-            mysql.close()
-            return 0.0
-        }
-
-        total += rs2.getInt(1)
-
-        rs2.close()
-        mysql.close()
-
-        val bid = Market.getPrice(item).bid
-
-        marketValueCache[item] = bid * total
-
-        return bid * total
-
-    }
-
-    fun getYesterdayOHLC(item: String): MarketSeries {
-
-        val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
-        val calender = Calendar.getInstance()
-        calender.time = Date()
-        calender.add(Calendar.DAY_OF_YEAR, -1)
-        calender.set(Calendar.HOUR, 0)
-        calender.set(Calendar.MINUTE, 0)
-
-        val yesterday = calender.time
-
-        val key = Pair(item, sdf.format(yesterday))
-
-        //キャッシュがあるならそっちをとる
-        if (dailyCandleCache[key] != null) {
-            return dailyCandleCache[key]!!
-        }
-
-        val mysql = MySQLManager(instance, "Man10MarketData")
-        val rs = mysql.query(
-            "select bid,volume from tick_table " +
-                    "where item_id='${item}' and date>'${sdf.format(yesterday)}' and date< '${sdf.format(Date())}';"
-        ) ?: return MarketSeries()
-
-        val list = mutableListOf<Double>()
-        var volume = 0
-
-        while (rs.next()) {
-            list.add(rs.getDouble("bid"))
-            volume += rs.getInt("volume")
-        }
-
-        rs.close()
-        mysql.close()
-
-        if (list.isEmpty())
-            return MarketSeries()
-
-        val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
-        dailyCandleCache[key] = ret
-
-        return ret
-    }
+//    fun getYesterdayOHLC(item: String): MarketSeries {
+//
+//        val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
+//        val calender = Calendar.getInstance()
+//        calender.time = Date()
+//        calender.add(Calendar.DAY_OF_YEAR, -1)
+//        calender.set(Calendar.HOUR, 0)
+//        calender.set(Calendar.MINUTE, 0)
+//
+//        val yesterday = calender.time
+//
+//        val key = Pair(item, sdf.format(yesterday))
+//
+//        //キャッシュがあるならそっちをとる
+//        if (dailyCandleCache[key] != null) {
+//            return dailyCandleCache[key]!!
+//        }
+//
+//        val mysql = MySQLManager(instance, "Man10MarketData")
+//        val rs = mysql.query(
+//            "select bid,volume from tick_table " +
+//                    "where item_id='${item}' and date>'${sdf.format(yesterday)}' and date< '${sdf.format(Date())}';"
+//        ) ?: return MarketSeries()
+//
+//        val list = mutableListOf<Double>()
+//        var volume = 0
+//
+//        while (rs.next()) {
+//            list.add(rs.getDouble("bid"))
+//            volume += rs.getInt("volume")
+//        }
+//
+//        rs.close()
+//        mysql.close()
+//
+//        if (list.isEmpty())
+//            return MarketSeries()
+//
+//        val ret = MarketSeries(list.first(), list.maxOf { it }, list.minOf { it }, list.last(), volume, list.size)
+//        dailyCandleCache[key] = ret
+//
+//        return ret
+//    }
 
     //騰落率
-    fun getPercentageChange(item: String): Double {
-
-        val yesterday = getYesterdayOHLC(item).close
-        val today = Market.getPrice(item).bid
-
-        if (yesterday == 0.0) {
-            return 0.0
-        }
-
-        return ((today / yesterday) - 1)
-    }
+//    fun getPercentageChange(item: String): Double {
+//
+//        val yesterday = getYesterdayOHLC(item).close
+//        val today = Market.getPrice(item).bid
+//
+//        if (yesterday == 0.0) {
+//            return 0.0
+//        }
+//
+//        return ((today / yesterday) - 1)
+//    }
 
     //現在値をCSVに書き込む
     fun asyncWritePriceDataToCSV(){
@@ -329,6 +329,56 @@ object MarketData {
             //価格情報の更新
             sql.execute("UPDATE hour_table SET " +
                         "high=$high,low=$low,close=$nowPrice,volume=volume+${volume} where " +
+                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
+
+            hourlyCandleCache[item] = Pair(series,data.second)
+        }
+    }
+
+    //一時間足のデータをDBに登録
+    fun saveDay(item: String, volume: Int = 0){
+
+        val nowPrice = Market.getPrice(item).bid
+        val data = hourlyCandleCache[item]?: Pair(MarketSeries(nowPrice,nowPrice,nowPrice,nowPrice), Date())
+        val series = data.first
+
+        val last = Calendar.getInstance()
+        last.time = data.second
+
+        val year = last.get(Calendar.YEAR)
+        val month = last.get(Calendar.MONTH)+1
+        val day = last.get(Calendar.DAY_OF_MONTH)
+        val hour = last.get(Calendar.HOUR)
+
+        val high = max(data.first.high,nowPrice)
+        val low = min(data.first.low,nowPrice)
+
+        series.high = high
+        series.low = low
+
+        Market.addJob {sql ->
+
+            val rs = sql.query("SELECT * from hour_table where " +
+                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
+
+            // レコードが生成されていなかったら、新規で挿入
+            if (rs == null || !rs.next()){
+                sql.execute("INSERT INTO hour_table " +
+                        "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
+                        "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
+                        "${year}, ${month}, ${day}, ${hour}, now(), ${volume})")
+
+                hourlyCandleCache.remove(item)
+                sql.close()
+                return@addJob
+            }
+
+            rs.close()
+            sql.close()
+
+            //価格情報の更新
+            sql.execute("UPDATE hour_table SET " +
+                    "high=$high,low=$low,close=$nowPrice,volume=volume+${volume} where " +
                     "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
 
             hourlyCandleCache[item] = Pair(series,data.second)
