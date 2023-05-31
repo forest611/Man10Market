@@ -24,8 +24,6 @@ import kotlin.math.min
 ///
 object MarketData {
 
-    private val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
-
     private val dailyOHLCCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
     private val hourlyOHLCCache = ConcurrentHashMap<String,Pair<MarketSeries,Date>>()
     private val marketValueCache = ConcurrentHashMap<String, Double>()
@@ -75,7 +73,7 @@ object MarketData {
 
     }
 
-    fun tickEvent(item: String,last:Market.PriceData) {
+    fun tickEvent(item: String,last:Market.PriceData,volume: Int) {
 
         val price = Market.getPrice(item)
 
@@ -95,9 +93,9 @@ object MarketData {
 
         //価格情報をCSVに吐き出す
         asyncWritePriceDataToCSV()
-        //OHLCの確認
-//        checkHourOHLC(item)
-        saveHour(item)
+
+        //一時間足に追記
+        saveHour(item,volume)
 
         if (highlow != null){
             //高値更新
@@ -115,7 +113,6 @@ object MarketData {
 
                 Bukkit.broadcast(Component.text("${prefix}§c§lマーケット速報！！${item}:${format(price.bid)}円 過去最安値更新！！！"))
             }
-
         }
     }
 
@@ -201,6 +198,7 @@ object MarketData {
 
     fun getYesterdayOHLC(item: String): MarketSeries {
 
+        val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
         val calender = Calendar.getInstance()
         calender.time = Date()
         calender.add(Calendar.DAY_OF_YEAR, -1)
@@ -215,7 +213,6 @@ object MarketData {
         if (dailyOHLCCache[key] != null) {
             return dailyOHLCCache[key]!!
         }
-
 
         val mysql = MySQLManager(instance, "Man10MarketData")
         val rs = mysql.query(
@@ -305,11 +302,12 @@ object MarketData {
             val rs = sql.query("SELECT * from hour_table where " +
                     "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
 
+            // レコードが生成されていなかったら、新規で挿入
             if (rs == null || !rs.next()){
                 sql.execute("INSERT INTO hour_table " +
                         "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
                         "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
-                        "${year}, ${month}, ${day}, ${hour}, now(), 0)")
+                        "${year}, ${month}, ${day}, ${hour}, now(), ${volume})")
 
                 hourlyOHLCCache.remove(item)
                 sql.close()
@@ -320,7 +318,7 @@ object MarketData {
             sql.close()
 
             //価格情報の更新
-            sql.execute("UPDATE INTO hour_table SET" +
+            sql.execute("UPDATE hour_table SET " +
                         "high=$high,low=$low,close=$nowPrice,volume=${series.volume} where " +
                     "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
 
@@ -335,6 +333,12 @@ object MarketData {
             val rs = sql.query("SELECT date,open,high,low,close,volume from ${tf}_table where item_id='$item'")?:return@addJob
 
             try {
+
+                val folder = File(instance.dataFolder.path+"/"+tf)
+                if (!folder.exists()){
+                    folder.mkdir()
+                }
+
                 val csv = File(instance.dataFolder.path+"/$tf/$id.csv")
                 val writer = FileWriter(csv)
                 writer.write("date,open,high,low,close,volume\n")

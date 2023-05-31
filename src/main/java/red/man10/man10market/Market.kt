@@ -48,6 +48,7 @@ object Market {
 
 
     //価格変更があったら呼び出す
+    //TickテーブルにTick履歴の書き込み
     private fun syncLogTick(item: String, volume: Int) {
 
         val ask: Double
@@ -88,7 +89,7 @@ object Market {
         )
 
         //Tickイベント
-        MarketData.tickEvent(item,cache)
+        MarketData.tickEvent(item,cache,volume)
     }
 
     //取引があったら呼ぶ
