@@ -195,7 +195,6 @@ object MarketData {
 
     }
 
-
     fun getYesterdayOHLC(item: String): MarketSeries {
 
         val sdf = SimpleDateFormat("yyyy-MM-dd 00:00:00")
