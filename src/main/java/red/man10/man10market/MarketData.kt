@@ -247,10 +247,10 @@ object MarketData {
 
             csv.bufferedWriter().use { writer->
 
-                writer.write("アイテム名,仲直,売値,買値\n")
+                writer.write("ID,アイテム名,仲直,売値,買値\n")
                 index.forEach { item ->
                     val price = Market.getPrice(item)
-                    writer.write("$item," +
+                    writer.write("${Market.getItemNumber(item)},$item," +
                             "${String.format("%.0f",price.price)}," +
                             "${String.format("%.0f",price.ask)}," +
                             "${String.format("%.0f",price.bid)}\n")

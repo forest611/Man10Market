@@ -7,6 +7,7 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.yaml.snakeyaml.error.Mark
 import red.man10.man10itembank.ItemBankAPI
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Man10Market.Companion.isMarketOpen
@@ -505,6 +506,9 @@ object Command : CommandExecutor {
                     .clickEvent(ClickEvent.suggestCommand("/mce ordersell $item "))
                     .hoverEvent(HoverEvent.showText(text("§6§l/mce ordersell $item <購入単価> <個数>")))
             )
+
+            p.sendMessage(text("$prefix §a§l§n[クリックしてチャートを開く]")
+                .clickEvent(ClickEvent.openUrl("https://man10.red/mce/?mode=hour&id=${Market.getItemNumber(item)}")))
 
 
 
