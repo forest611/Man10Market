@@ -507,8 +507,9 @@ object Command : CommandExecutor {
                     .hoverEvent(HoverEvent.showText(text("§6§l/mce ordersell $item <購入単価> <個数>")))
             )
 
-            p.sendMessage(text("$prefix §a§l§n[クリックしてチャートを開く]")
-                .clickEvent(ClickEvent.openUrl("https://man10.red/mce/?mode=hour&id=${Market.getItemNumber(item)}")))
+            p.sendMessage(text("$prefix §b§l§n[クリックしてチャートを開く]")
+                .clickEvent(ClickEvent.openUrl("https://man10.red/mce/?mode=day&id=${Market.getItemNumber(item)}"))
+                .hoverEvent(HoverEvent.showText(text("§6§lWebブラウザで日足のチャートをみる"))))
 
 
 

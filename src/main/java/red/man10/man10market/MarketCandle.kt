@@ -149,7 +149,7 @@ object MarketCandle {
 
         Market.addJob {sql ->
             val id = Market.getItemNumber(item)
-            val rs = sql.query("SELECT date,open,high,low,close,volume from ${tf}_table where item_id='$item' order by date desc LIMIT 200")?:return@addJob
+            val rs = sql.query("SELECT date,open,high,low,close,volume from ${tf}_table where item_id='$item' order by date desc LIMIT 100")?:return@addJob
 
             try {
 
