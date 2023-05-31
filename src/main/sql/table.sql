@@ -97,8 +97,8 @@ create table day_table
     volume  int         null
 );
 
-create index hour_table_item_id_year_month_day_hour_index
-    on hour_table (item_id, year, month, day, hour, date);
+create index day_table_item_id_year_month_day_index
+    on day_table (item_id, year, month, day, date);
 
 
 

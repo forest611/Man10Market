@@ -21,28 +21,15 @@ import kotlin.math.min
 ///
 object MarketData {
 
-    private val dailyCandleCache = ConcurrentHashMap<Pair<String, String>, MarketSeries>()
-    private val hourlyCandleCache = ConcurrentHashMap<String,Pair<MarketSeries,Date>>()
 //    private val marketValueCache = ConcurrentHashMap<String, Double>()
     private val highLowPriceCache = ConcurrentHashMap<String, HighLow>()//高値安値
 
-    private val timer = Timer()
 
     //onEnableでよぶ
     fun init(){
         Thread { loadHighLowPrice() }.start()
 
-        timer.schedule(
-            object : TimerTask(){
-                override fun run() {
-                    Market.getItemIndex().forEach {
-                        saveHour(it)
-                        writeCSV(it,"hour")
-                    }
-                    Bukkit.getLogger().info("1時間足の値を保存しました")
-                }
-            },0,1000*60
-        )
+        MarketCandle.schedule()
 
         asyncWriteDictionaryCSV()
     }
@@ -93,7 +80,8 @@ object MarketData {
         asyncWritePriceDataToCSV()
 
         //一時間足に追記
-        saveHour(item,volume)
+        MarketCandle.saveHour(item,volume)
+        MarketCandle.saveDay(item,volume)
 
         if (highlow != null){
             //高値更新
@@ -285,142 +273,7 @@ object MarketData {
         }
     }
 
-    //一時間足のデータをDBに登録
-    fun saveHour(item: String, volume: Int = 0){
 
-        val nowPrice = Market.getPrice(item).bid
-        val data = hourlyCandleCache[item]?: Pair(MarketSeries(nowPrice,nowPrice,nowPrice,nowPrice), Date())
-        val series = data.first
-
-        val last = Calendar.getInstance()
-        last.time = data.second
-
-        val year = last.get(Calendar.YEAR)
-        val month = last.get(Calendar.MONTH)+1
-        val day = last.get(Calendar.DAY_OF_MONTH)
-        val hour = last.get(Calendar.HOUR)
-
-        val high = max(data.first.high,nowPrice)
-        val low = min(data.first.low,nowPrice)
-
-        series.high = high
-        series.low = low
-
-        Market.addJob {sql ->
-
-            val rs = sql.query("SELECT * from hour_table where " +
-                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
-
-            // レコードが生成されていなかったら、新規で挿入
-            if (rs == null || !rs.next()){
-                sql.execute("INSERT INTO hour_table " +
-                        "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
-                        "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
-                        "${year}, ${month}, ${day}, ${hour}, now(), ${volume})")
-
-                hourlyCandleCache.remove(item)
-                sql.close()
-                return@addJob
-            }
-
-            rs.close()
-            sql.close()
-
-            //価格情報の更新
-            sql.execute("UPDATE hour_table SET " +
-                        "high=$high,low=$low,close=$nowPrice,volume=volume+${volume} where " +
-                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
-
-            hourlyCandleCache[item] = Pair(series,data.second)
-        }
-    }
-
-    //一時間足のデータをDBに登録
-    fun saveDay(item: String, volume: Int = 0){
-
-        val nowPrice = Market.getPrice(item).bid
-        val data = hourlyCandleCache[item]?: Pair(MarketSeries(nowPrice,nowPrice,nowPrice,nowPrice), Date())
-        val series = data.first
-
-        val last = Calendar.getInstance()
-        last.time = data.second
-
-        val year = last.get(Calendar.YEAR)
-        val month = last.get(Calendar.MONTH)+1
-        val day = last.get(Calendar.DAY_OF_MONTH)
-        val hour = last.get(Calendar.HOUR)
-
-        val high = max(data.first.high,nowPrice)
-        val low = min(data.first.low,nowPrice)
-
-        series.high = high
-        series.low = low
-
-        Market.addJob {sql ->
-
-            val rs = sql.query("SELECT * from hour_table where " +
-                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
-
-            // レコードが生成されていなかったら、新規で挿入
-            if (rs == null || !rs.next()){
-                sql.execute("INSERT INTO hour_table " +
-                        "(item_id, open, high, low, close, year, month, day, hour, date, volume) " +
-                        "VALUES ('${item}', ${nowPrice}, ${nowPrice}, ${nowPrice}, ${nowPrice}, " +
-                        "${year}, ${month}, ${day}, ${hour}, now(), ${volume})")
-
-                hourlyCandleCache.remove(item)
-                sql.close()
-                return@addJob
-            }
-
-            rs.close()
-            sql.close()
-
-            //価格情報の更新
-            sql.execute("UPDATE hour_table SET " +
-                    "high=$high,low=$low,close=$nowPrice,volume=volume+${volume} where " +
-                    "item_id='${item}' and year=$year and month=$month and day=$day and hour=$hour")
-
-            hourlyCandleCache[item] = Pair(series,data.second)
-        }
-    }
-
-    private fun writeCSV(item:String, tf:String){
-
-        Market.addJob {sql ->
-            val id = Market.getItemNumber(item)
-            val rs = sql.query("SELECT date,open,high,low,close,volume from ${tf}_table where item_id='$item'")?:return@addJob
-
-            try {
-
-                val folder = File(instance.dataFolder.path+"/"+tf)
-                if (!folder.exists()){
-                    folder.mkdir()
-                }
-
-                val csv = File(instance.dataFolder.path+"/$tf/$id.csv")
-                val writer = FileWriter(csv)
-                writer.write("date,open,high,low,close,volume\n")
-
-                while (rs.next()){
-                    val date = rs.getTimestamp("date")
-                    val open = rs.getDouble("open")
-                    val high = rs.getDouble("high")
-                    val low = rs.getDouble("low")
-                    val close = rs.getDouble("close")
-                    val volume = rs.getInt("volume")
-                    writer.write("${SimpleDateFormat("yyyy-MM-dd HH:00:00").format(date)}," +
-                            "${open},${high},${low},${close},${volume}\n")
-                }
-
-                rs.close()
-                sql.close()
-                writer.close()
-            }catch (e:Exception){
-                Bukkit.getLogger().warning(e.message)
-            }
-        }
-    }
 
     data class MarketSeries(
         var open: Double = 0.0,
