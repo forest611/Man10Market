@@ -9,8 +9,8 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
+import red.man10.man10itembank.util.MySQLManager
 import red.man10.man10market.Command.OP
 import red.man10.man10market.Command.USER
 import red.man10.man10market.Man10Market.Companion.bankAPI
