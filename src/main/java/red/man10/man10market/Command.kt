@@ -59,7 +59,7 @@ object Command : CommandExecutor {
                     sender.sendMessage("§l/mce op reload : Reload market system.")
                     sender.sendMessage("§l/mce op on : Open market to public.")
                     sender.sendMessage("§l/mce op off : Close market to public.")
-                    sender.sendMessage("§l/mce showorder <mcid> : Show orders you select.")
+                    sender.sendMessage("§l/mce showorder <uuid> : Show orders you select.")
 
                     return true
                 }
@@ -100,7 +100,8 @@ object Command : CommandExecutor {
 
                     "showorder" -> {
 
-                        Market.getUserOrderList(args[2]) { orders ->
+                        val uuid = UUID.fromString(args[2])
+                        Market.getUserOrderList(uuid) { orders ->
 
                             orders.forEach {
                                 val color = if (it.buy) "§a§l買" else "§c§l売"

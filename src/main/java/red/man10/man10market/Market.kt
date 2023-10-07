@@ -1,10 +1,9 @@
 package red.man10.man10market
 
 import org.bukkit.Bukkit
-import red.man10.man10bank.Bank
 import red.man10.man10bank.Man10Bank
-import red.man10.man10bank.MySQLManager
 import red.man10.man10itembank.ItemBankAPI
+import red.man10.man10itembank.util.MySQLManager
 import red.man10.man10market.Man10Market.Companion.bankAPI
 import red.man10.man10market.Man10Market.Companion.instance
 import red.man10.man10market.Util.format
@@ -20,7 +19,7 @@ import kotlin.math.floor
  */
 object Market {
 
-    private val transactionQueue = LinkedBlockingQueue<(mysql:MySQLManager) -> Unit>()
+    private val transactionQueue = LinkedBlockingQueue<(mysql: MySQLManager) -> Unit>()
     private var transactionThread = Thread { transaction() }
     private val priceCache = ConcurrentHashMap<String, PriceData>()
     private val mysql = MySQLManager(instance, "Man10MarketQueue")
@@ -177,12 +176,6 @@ object Market {
 
             callback.invoke(list)
         }
-    }
-
-    fun getUserOrderList(mcid: String, callback: (List<OrderData>) -> Unit) {
-
-        val uuid = Bank.getUUID(mcid) ?: return
-        getUserOrderList(uuid, callback)
     }
 
 
