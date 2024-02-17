@@ -10,6 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.27" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3"/>
+        <PackageReference Include="Volo.Abp.EntityFrameworkCore.MySQL" Version="6.0.3" />
     </ItemGroup>
 
     <ItemGroup>
@@ -17,6 +18,7 @@
         <Link>.dockerignore</Link>
       </Content>
     </ItemGroup>
+
 
 
 
