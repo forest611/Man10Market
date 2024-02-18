@@ -10,8 +10,25 @@ public class ItemBank
 {
     private Player Player { get; }
     private Item Item { get; }
+    
+    private static readonly ConcurrentDictionary<(Player, Item), ItemBank> ItemBankDic = new();
+    private static readonly BlockingCollection<Action<ItemIndexContext>> TransactionQueue = new();
 
-    public ItemBank(Player player, Item item)
+    /// <summary>
+    /// 指定ユーザーのItemBankをアクセスするにはここから行う
+    /// </summary>
+    /// <param name="player"></param>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    public static ItemBank GetItemBank(Player player, Item item)
+    {
+        if (ItemBankDic.ContainsKey((player, item))) return ItemBankDic[(player, item)];
+        var ib = new ItemBank(player, item);
+        ItemBankDic[(player, item)] = ib;
+        return ib;
+    }
+    
+    private ItemBank(Player player, Item item)
     {
         Player = player;
         Item = item;
@@ -47,7 +64,6 @@ public class ItemBank
         Task.Run(ItemBankQueue);
     }
 
-    private static readonly BlockingCollection<Action<ItemIndexContext>> TransactionQueue = new();
 
     private static void ItemBankQueue()
     {
