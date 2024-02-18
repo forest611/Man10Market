@@ -5,8 +5,8 @@ namespace MarketServer.DataClass;
 /// </summary>
 public class Item
 {
-    private int Id { get;  }
-    private string Name { get; }
+    public int Id { get;  }
+    public string Name { get; }
 
     private Item(int id, string name)
     {
