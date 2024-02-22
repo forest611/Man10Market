@@ -16,9 +16,9 @@ public static class Market
         Task.Run(MarketTransactionQueue);
     }
 
-    public static async Task<bool> MarketBuy(Player player,Item item,int lot)
+    public static async Task<TradeResult> MarketBuy(Player player,Item item,int lot)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<TradeResult>();
         TransactionQueue.Add(() =>
         {
             var remainingLot = lot;
@@ -30,7 +30,7 @@ public static class Market
 
                 if (order==null)
                 {
-                    tcs.SetResult(true);
+                    tcs.SetResult(TradeResult.OrderNotFound);
                     return;
                 }
 
@@ -39,7 +39,7 @@ public static class Market
                 var canWithdraw = Bank.Bank.Withdraw(player, withdrawAmount, "Man10MarketMarketBuy", "マーケット成行買い").Result;
                 if (!canWithdraw)
                 {
-                    tcs.SetResult(false);
+                    tcs.SetResult(TradeResult.FailedWithdraw);
                     return;
                 }
                 _ = order.ExecuteOrder(executeLot);
@@ -53,14 +53,14 @@ public static class Market
                 }
                 Logger.TradeLog(player,item,executeLot,order.Price,TradeType.MarketBuy);
             }
-            tcs.SetResult(true);
+            tcs.SetResult(TradeResult.Success);
         });
         return await tcs.Task;
     }
 
-    public static async Task<bool> MarketSell(Player player,Item item,int lot)
+    public static async Task<TradeResult> MarketSell(Player player,Item item,int lot)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<TradeResult>();
         TransactionQueue.Add((() =>
         {
             var remainingLot = lot;
@@ -72,7 +72,7 @@ public static class Market
 
                 if (order==null)
                 {
-                    tcs.SetResult(true);
+                    tcs.SetResult(TradeResult.OrderNotFound);
                     return;
                 }
 
@@ -80,7 +80,7 @@ public static class Market
                 var canTake = itemBank.Take(executeLot).Result;
                 if (!canTake)
                 {
-                    tcs.SetResult(false);
+                    tcs.SetResult(TradeResult.FailedTakeItem);
                     return;
                 }
 
@@ -92,25 +92,24 @@ public static class Market
                 {
                     //入金に失敗したらログを残す
                     Logger.TradeLog(player,item,executeLot,order.Price,TradeType.FailedDeposit);
-                    tcs.SetResult(true);
                     return;
                 }
                 Logger.TradeLog(player,item,executeLot,order.Price,TradeType.MarketSell);
             }
-            tcs.SetResult(true);
+            tcs.SetResult(TradeResult.Success);
         }));
 
         return await tcs.Task;
     }
 
-    public static async Task<bool> OrderBuy(Player player,Item item,double price,int lot)
+    public static async Task<TradeResult> OrderBuy(Player player,Item item,double price,int lot)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<TradeResult>();
         TransactionQueue.Add(() =>
         {
             if (!Order.CanOrder(item,price,true))
             {
-                tcs.SetResult(false);
+                tcs.SetResult(TradeResult.IllegalPriceSetting);
                 return;
             }
             
@@ -118,23 +117,24 @@ public static class Market
             var canWithdraw = Bank.Bank.Withdraw(player,requireAmount , "Man10MarketOrderBuy", "マーケット指値買い").Result;
             if (!canWithdraw)
             {
-                tcs.SetResult(false);
+                tcs.SetResult(TradeResult.FailedWithdraw);
                 return;
             }
             Order.AddNewOrder(player, item, true, price, lot);
             Logger.TradeLog(player,item,lot,price,TradeType.OrderBuy);
+            tcs.SetResult(TradeResult.Success);
         });
         return await tcs.Task;
     }
 
-    public static async Task<bool> OrderSell(Player player,Item item,double price,int lot)
+    public static async Task<TradeResult> OrderSell(Player player,Item item,double price,int lot)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<TradeResult>();
         TransactionQueue.Add(() =>
         {
             if (!Order.CanOrder(item,price,false))
             {
-                tcs.SetResult(false);
+                tcs.SetResult(TradeResult.IllegalPriceSetting);
                 return;
             }
 
@@ -142,31 +142,32 @@ public static class Market
             var canTake = itemBank.Take(lot).Result;
             if (!canTake)
             {   
-                tcs.SetResult(false);
+                tcs.SetResult(TradeResult.FailedTakeItem);
                 return;
             }
             Order.AddNewOrder(player, item, false, price, lot);
             Logger.TradeLog(player,item,lot,price,TradeType.OrderSell);
+            tcs.SetResult(TradeResult.Success);
         });
         return await tcs.Task;
     }
 
-    public static async Task<bool> CancelOrder(int id)
+    public static async Task<TradeResult> CancelOrder(int id)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<TradeResult>();
         TransactionQueue.Add(() =>
         {
             var order = Order.GetFromId(id);
             if (order == null)
             {
-                tcs.SetResult(false);
+                tcs.SetResult(TradeResult.OrderNotFound);
                 return;
             }
             var canDelete = order.Delete();
             //注文の削除
             if (!canDelete)
             {
-                tcs.SetResult(false);
+                tcs.SetResult(TradeResult.OrderNotFound);
                 return;
             }
 
@@ -179,10 +180,9 @@ public static class Market
                 {
                     Logger.TradeLog(order.OrderPlayer,order.Item,order.Lot,order.Price,TradeType.FailedDeposit);
                 }
-                tcs.SetResult(true);
             }
 
-            //売り注文の場合はアイテムを返す
+            //売り注文の場合は返品
             if (order.Sell)
             {
                 var itemBank = ItemBank.ItemBank.GetItemBank(order.OrderPlayer, order.Item);
@@ -191,9 +191,10 @@ public static class Market
                 {
                     Logger.TradeLog(order.OrderPlayer,order.Item,order.Lot,order.Price,TradeType.FailedAddItem);
                 }
-                tcs.SetResult(true);
             }
+            
             Logger.TradeLog(order.OrderPlayer,order.Item,order.Lot,order.Price,TradeType.CancelOrder);
+            tcs.SetResult(TradeResult.Success);
         });
         return await tcs.Task;
     }
@@ -217,4 +218,13 @@ public static class Market
             }
         }
     }
+}
+
+public enum TradeResult
+{
+    Success,
+    OrderNotFound,
+    FailedWithdraw,
+    FailedTakeItem,
+    IllegalPriceSetting
 }
