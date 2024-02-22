@@ -107,8 +107,8 @@ public class ItemBank
 
             record!.amount += amount;
             context.SaveChanges();
-            tcs.SetResult(true);
             Logger.StorageLog(Item,null,Player,StorageActionType.AddItem,0,0,new Location());
+            tcs.SetResult(true);
         });
         
         return await tcs.Task;
@@ -148,8 +148,8 @@ public class ItemBank
             
             record!.amount -= amount;
             context.SaveChanges();
-            tcs.SetResult(true);
             Logger.StorageLog(Item,null,Player,StorageActionType.AddItem,0,0,new Location());
+            tcs.SetResult(true);
         });
         
         return await tcs.Task;
