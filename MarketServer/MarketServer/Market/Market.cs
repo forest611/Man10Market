@@ -29,7 +29,7 @@ public static class Market
         var tcs = new TaskCompletionSource<bool>();
         TransactionQueue.Add(() =>
         {
-            
+            var ret = 
             Order.AddNewOrder(player, item, true, price, lot);
         });
     }
