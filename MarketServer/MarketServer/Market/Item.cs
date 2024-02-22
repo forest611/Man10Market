@@ -1,3 +1,5 @@
+using MarketServer.Model;
+
 namespace MarketServer.Market;
 
 /// <summary>
@@ -7,6 +9,8 @@ public class Item
 {
     public int Id { get;  }
     public string Name { get; }
+
+    private static readonly HashSet<Item> ItemSet = new();
 
     private Item(int id, string name)
     {
@@ -19,8 +23,18 @@ public class Item
         LoadItem();
     }
 
+    public static Item GetItem(string name)
+    {
+        return ItemSet.FirstOrDefault(r => r.Name == name) ?? throw new KeyNotFoundException($"{name}というアイテムがない");
+    }
+
     private static void LoadItem()
     {
+        ItemSet.Clear();
+
+        var context = new ItemIndexContext();
         
+        
+
     }
 }
