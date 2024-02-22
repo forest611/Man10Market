@@ -4,12 +4,11 @@ namespace MarketServer.Model;
 
 public class BaseContext : DbContext
 {
-    
-    protected static string? Host { get; set; }
-    protected static string? Port { get; set; }
-    protected static string? Pass { get; set; }
-    protected static string? User { get; set; }
-    protected static string? DatabaseName { get; set; }
+    private static string? Host { get; set; }
+    private static string? Port { get; set; }
+    private static string? Pass { get; set; }
+    private static string? User { get; set; }
+    private static string? DatabaseName { get; set; }
 
 
     public static void LoadConfig(IConfiguration config)
@@ -19,6 +18,27 @@ public class BaseContext : DbContext
         Pass = config["Database:Pass"];
         User = config["Database:User"];
         DatabaseName = config["Database:DatabaseName"];
+        Console.WriteLine("データベースのConfigを読み込みました");
+        TestConnect();
+    }
+
+    public static void TestConnect()
+    {
+        Console.WriteLine("データベースの接続テストを行います。");
+        bool canConnect = false;
+        try
+        {
+            canConnect = new BaseContext().Database.CanConnect();
+        }
+        catch (Exception e)
+        {
+            canConnect = false;
+            Console.WriteLine(e);
+        }
+        finally
+        {
+            Console.WriteLine($"データベースの接続:{canConnect}");
+        }
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
