@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using MarketServer.data;
 using MarketServer.Market;
 using MarketServer.Model;
 

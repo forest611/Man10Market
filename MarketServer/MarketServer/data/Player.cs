@@ -1,4 +1,4 @@
-namespace MarketServer.Market;
+namespace MarketServer.data;
 
 /// <summary>
 /// プレイヤー 資産情報などを探すキーとして扱う
@@ -12,18 +12,5 @@ public class Player
     {
         Name = name;
         Uuid = uuid;
-    }
-
-    public Player(string uuid)
-    {
-        Uuid = uuid;
-        Name = GetNameFromUuid();
-        //nameをDBから取得する
-    }
-
-    private string GetNameFromUuid()
-    {
-        //TODO:
-        return "";
     }
 }

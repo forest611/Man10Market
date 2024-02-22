@@ -1,6 +1,6 @@
 using MarketServer.Model;
 
-namespace MarketServer.Market;
+namespace MarketServer.data;
 
 /// <summary>
 /// 取引アイテムの情報を管理するクラス
@@ -34,7 +34,9 @@ public class Item
 
         var context = new ItemIndexContext();
         
-        
-
+        foreach (var index in context.item_index)
+        {
+            ItemSet.Add(new Item(index.id, index.item_key));
+        }
     }
 }
