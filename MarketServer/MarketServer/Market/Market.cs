@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace MarketServer.MarketSystem;
+namespace MarketServer.Market;
 
 /// <summary>
 /// mceの取引を処理するクラス

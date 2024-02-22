@@ -1,4 +1,4 @@
-namespace MarketServer.DataClass;
+namespace MarketServer.Market;
 
 /// <summary>
 /// 取引アイテムの情報を管理するクラス

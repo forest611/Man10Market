@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
+using MarketServer.Market;
 using MarketServer.Model;
 
-namespace MarketServer.DataClass;
+namespace MarketServer.Market;
 
 /// <summary>
 /// ユーザーとアイテムのItemBankの管理

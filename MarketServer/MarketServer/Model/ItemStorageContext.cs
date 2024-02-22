@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using MarketServer.DataClass;
 using Microsoft.EntityFrameworkCore;
 
 namespace MarketServer.Model;
