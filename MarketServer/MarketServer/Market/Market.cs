@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using MarketServer.data;
+using MarketServer.util;
 
 namespace MarketServer.Market;
 
@@ -44,11 +45,13 @@ public static class Market
                 _ = order.ExecuteOrder(executeLot);
                 remainingLot -= executeLot;
                 var canAdd = itemBank.Add(executeLot).Result;
-                if (!canAdd){}
+                if (!canAdd)
                 {
-                    //TODO:ログ
+                    //アイテムの追加に失敗したらログを残す
+                    Logger.TradeLog(player,item,executeLot,order.Price,TradeType.FailedAddItem);
                     return;
                 }
+                Logger.TradeLog(player,item,executeLot,order.Price,TradeType.MarketBuy);
             }
             tcs.SetResult(true);
         });
@@ -87,8 +90,12 @@ public static class Market
                 var canDeposit = Bank.Bank.Deposit(player, depositAmount, "Man10MarketMarketSell", "マーケット成行売り").Result;
                 if (!canDeposit)
                 {
-                    //TODO:ログ
+                    //入金に失敗したらログを残す
+                    Logger.TradeLog(player,item,executeLot,order.Price,TradeType.FailedDeposit);
+                    tcs.SetResult(true);
+                    return;
                 }
+                Logger.TradeLog(player,item,executeLot,order.Price,TradeType.MarketSell);
             }
             tcs.SetResult(true);
         }));
@@ -109,6 +116,7 @@ public static class Market
                 return;
             }
             Order.AddNewOrder(player, item, true, price, lot);
+            Logger.TradeLog(player,item,lot,price,TradeType.OrderBuy);
         });
         return await tcs.Task;
     }
@@ -126,6 +134,7 @@ public static class Market
                 return;
             }
             Order.AddNewOrder(player, item, false, price, lot);
+            Logger.TradeLog(player,item,lot,price,TradeType.OrderSell);
         });
         return await tcs.Task;
     }
@@ -146,6 +155,7 @@ public static class Market
             if (!canDelete)
             {
                 tcs.SetResult(false);
+                return;
             }
 
             //買い注文の場合は返金
@@ -155,7 +165,7 @@ public static class Market
                 var canDeposit = Bank.Bank.Deposit(order.OrderPlayer, amount, "CancelMarketOrderBuy", "マーケット指値買いキャンセル").Result;
                 if (!canDeposit)
                 {
-                    //TODO:失敗ログを残す
+                    Logger.TradeLog(order.OrderPlayer,order.Item,order.Lot,order.Price,TradeType.FailedDeposit);
                 }
                 tcs.SetResult(true);
             }
@@ -167,12 +177,11 @@ public static class Market
                 var added = itemBank.Add(order.Lot).Result;
                 if (!added)
                 {
-                    //TODO:失敗ログを残す
+                    Logger.TradeLog(order.OrderPlayer,order.Item,order.Lot,order.Price,TradeType.FailedAddItem);
                 }
                 tcs.SetResult(true);
             }
-
-            //TODO:何かしら
+            Logger.TradeLog(order.OrderPlayer,order.Item,order.Lot,order.Price,TradeType.CancelOrder);
         });
         return await tcs.Task;
     }
