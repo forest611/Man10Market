@@ -21,7 +21,7 @@ public static class Market
         TransactionQueue.Add(() =>
         {
             var remainingLot = lot;
-            var itemBank = ItemBank.GetItemBank(player, item);
+            var itemBank = ItemBank.ItemBank.GetItemBank(player, item);
 
             while (remainingLot>0)
             {
@@ -61,7 +61,7 @@ public static class Market
         TransactionQueue.Add((() =>
         {
             var remainingLot = lot;
-            var itemBank = ItemBank.GetItemBank(player, item);
+            var itemBank = ItemBank.ItemBank.GetItemBank(player, item);
 
             while (remainingLot>0)
             {
@@ -118,7 +118,7 @@ public static class Market
         var tcs = new TaskCompletionSource<bool>();
         TransactionQueue.Add(() =>
         {
-            var itemBank = ItemBank.GetItemBank(player, item);
+            var itemBank = ItemBank.ItemBank.GetItemBank(player, item);
             var canTake = itemBank.Take(lot).Result;
             if (!canTake)
             {   
@@ -163,7 +163,7 @@ public static class Market
             //売り注文の場合はアイテムを返す
             if (order.Sell)
             {
-                var itemBank = ItemBank.GetItemBank(order.OrderPlayer, order.Item);
+                var itemBank = ItemBank.ItemBank.GetItemBank(order.OrderPlayer, order.Item);
                 var added = itemBank.Add(order.Lot).Result;
                 if (!added)
                 {

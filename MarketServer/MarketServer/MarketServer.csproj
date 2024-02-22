@@ -21,9 +21,7 @@
 
 
 
-    <ItemGroup>
-      <Folder Include="util\" />
-    </ItemGroup>
+
 
     </ItemGroup>
 
