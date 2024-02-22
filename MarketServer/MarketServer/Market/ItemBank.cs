@@ -111,6 +111,11 @@ public class ItemBank
         return await tcs.Task;
     }
 
+    /// <summary>
+    /// 取出し
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <returns></returns>
     public async Task<bool> Take(int amount)
     {
         //0以下の場合はスルー
@@ -146,7 +151,7 @@ public class ItemBank
     }
 
     /// <summary>
-    /// DBからバンクレコードを取得する
+    /// DBからアイテムバンクのレコードを取得する
     /// </summary>
     /// <param name="context"></param>
     /// <returns>レコード</returns>
@@ -157,8 +162,7 @@ public class ItemBank
         Console.WriteLine("ItemBankクラスのロード");
         Task.Run(ItemBankQueue);
     }
-
-
+    
     private static void ItemBankQueue()
     {
         Console.WriteLine("アイテムバンクキュー起動");
@@ -177,19 +181,5 @@ public class ItemBank
             }
         }
     }
-    
-    
-    // トランザクションの結果を取得するためのサンプル
-    // public static async Task<double> SyncGetBalance(string uuid)
-    // {
-    //     var tcs = new TaskCompletionSource<double>();
-    //     
-    //     GetBalance(uuid, r =>
-    //     {
-    //         tcs.SetResult(r);
-    //     });
-    //
-    //     return await tcs.Task;
-    // }
     
 }
