@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace MarketServer.Model;
@@ -6,6 +7,7 @@ namespace MarketServer.Model;
 public class OrderTable
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int id { get; set; }
     public string player { get; set; }
     public string uuid { get; set; }
