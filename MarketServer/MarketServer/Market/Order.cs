@@ -101,40 +101,13 @@ public class Order
     /// <summary>
     /// 新規指値注文を投げる
     /// </summary>
-    /// <param name="player">注文したプレイヤー</param>
-    /// <param name="item">注文した内容</param>
-    /// <param name="isBuy">買いならtrue 売りならfalse</param>
-    /// <param name="price">金額</param>
-    /// <param name="lot">個数</param>
-    /// <exception cref="price">金額がマイナスの場合は例外</exception>
-    /// <exception cref="lot">ロットがマイナスの場合は例外</exception>
     /// <returns>Orderインスタンス 注文失敗した場合はnull</returns>
     public static Order? AddNewOrder(Player player, Item item, bool isBuy, double price, int lot)
     {
-
-        //不可能な注文をできないようにする
-        switch (isBuy)
+        if (!CanOrder(item,price,isBuy))
         {
-            case true:
-            {
-                var minOrder = GetMinSellOrder(item);
-                if (minOrder != null && price >= minOrder.Price)
-                {
-                    return null;
-                }
-                break;
-            }
-            case false:
-            {
-                var maxOrder = GetMaxBuyOrder(item);
-                if (maxOrder != null && price <= maxOrder.Price)
-                {
-                    return null;
-                }
-                break;
-            }
+            return null;
         }
-
         var record = new OrderTable
         {
             player = player.Name,
@@ -151,6 +124,33 @@ public class Order
         
         //TODO:idが変わってるか要チェック
         return new Order(record.id,player, item, isBuy, price, lot);
+    }
+
+    public static bool CanOrder(Item item, double price, bool isBuy)
+    {
+        switch (isBuy)
+        {
+            case true:
+            {
+                var minOrder = GetMinSellOrder(item);
+                if (minOrder != null && price >= minOrder.Price)
+                {
+                    return false;
+                }
+                break;
+            }
+            case false:
+            {
+                var maxOrder = GetMaxBuyOrder(item);
+                if (maxOrder != null && price <= maxOrder.Price)
+                {
+                    return false;
+                }
+                break;
+            }
+        }
+
+        return true;
     }
     
     public static Order? GetFromId(int id)

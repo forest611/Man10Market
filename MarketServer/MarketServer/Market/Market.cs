@@ -108,6 +108,12 @@ public static class Market
         var tcs = new TaskCompletionSource<bool>();
         TransactionQueue.Add(() =>
         {
+            if (!Order.CanOrder(item,price,true))
+            {
+                tcs.SetResult(false);
+                return;
+            }
+            
             var requireAmount = price * lot;
             var canWithdraw = Bank.Bank.Withdraw(player,requireAmount , "Man10MarketOrderBuy", "マーケット指値買い").Result;
             if (!canWithdraw)
@@ -126,6 +132,12 @@ public static class Market
         var tcs = new TaskCompletionSource<bool>();
         TransactionQueue.Add(() =>
         {
+            if (!Order.CanOrder(item,price,false))
+            {
+                tcs.SetResult(false);
+                return;
+            }
+
             var itemBank = ItemBank.ItemBank.GetItemBank(player, item);
             var canTake = itemBank.Take(lot).Result;
             if (!canTake)
@@ -204,7 +216,5 @@ public static class Market
                 Console.WriteLine(e);
             }
         }
-        
     }
-    
 }
