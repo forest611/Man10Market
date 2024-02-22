@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using MarketServer.data;
 using MarketServer.Model;
+using MarketServer.util;
 
 namespace MarketServer.ItemBank;
 
@@ -56,8 +57,9 @@ public class ItemBank
         };
 
         context.item_storage.Add(newRecord);
-
         context.SaveChanges();
+        
+        Logger.StorageLog(Item,null,Player,StorageActionType.CreateStorage,0,0,new Location());
     }
 
     public int GetAmount()
@@ -106,6 +108,7 @@ public class ItemBank
             record!.amount += amount;
             context.SaveChanges();
             tcs.SetResult(true);
+            Logger.StorageLog(Item,null,Player,StorageActionType.AddItem,0,0,new Location());
         });
         
         return await tcs.Task;
@@ -136,6 +139,7 @@ public class ItemBank
                 Create(context);
             }
 
+            //個数が足りない
             if (record!.amount < amount)
             {
                 tcs.SetResult(false);
@@ -144,7 +148,8 @@ public class ItemBank
             
             record!.amount -= amount;
             context.SaveChanges();
-            tcs.SetResult(false);
+            tcs.SetResult(true);
+            Logger.StorageLog(Item,null,Player,StorageActionType.AddItem,0,0,new Location());
         });
         
         return await tcs.Task;

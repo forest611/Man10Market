@@ -14,4 +14,12 @@ public class Location
         Z = z;
         World = world;
     }
+
+    public Location()
+    {
+        X = 0;
+        Y = 0;
+        Z = 0;
+        World = "none";
+    }
 }

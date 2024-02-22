@@ -34,11 +34,13 @@ public static class Logger
         });
     }
 
-    public static void StorageLog(Player? order, Player target, StorageActionType type, int editAmount, int storageAmount,Location location)
+    public static void StorageLog(Item item,Player? order, Player target, StorageActionType type, int editAmount, int storageAmount,Location location)
     {
         var record = new StorageLog
         {
-            order_player = order?.Name ?? "null",
+            item_id = item.Id,
+            item_key = item.Name,
+            order_player = order?.Name ?? "Server",
             order_uuid = order?.Uuid ?? "null",
             target_player = target.Name,
             target_uuid = target.Uuid,
