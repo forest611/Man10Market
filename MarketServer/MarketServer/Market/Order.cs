@@ -13,13 +13,13 @@ public class Order
     //排他使用する
     private static readonly OrderTableContext Context = new();
     
-    public int Id { get; set; }
+    public int Id { get; }
     public Player OrderPlayer { get; }
     public Item Item { get; }
     public double Price { get; }
     public bool Buy { get; }
     public bool Sell { get; }
-    public int Lot { get; }
+    public int Lot { get; private set; }
 
 
     private Order(int id,Player player, Item item, bool isBuy, double price, int lot)
@@ -33,7 +33,8 @@ public class Order
         {
             throw new ArgumentException("注文ロット数がマイナス",nameof(lot));
         }
-        
+
+        Id = id;
         OrderPlayer = player;
         Price = price;
         Item = item;
@@ -42,6 +43,40 @@ public class Order
         Lot = lot;
     }
 
+    /// <summary>
+    /// 約定する
+    /// </summary>
+    /// <param name="lot">希望数</param>
+    /// <returns>約定が成立した数</returns>
+    public int ExecuteOrder(int lot)
+    {
+        int successLot;
+
+        if (Lot > lot)
+        {
+            successLot = lot;
+            Lot -= lot;
+            SaveChanges();
+        }
+        else
+        {
+            successLot = Lot;
+            Delete();
+        }
+
+        return successLot;
+    }
+
+    /// <summary>
+    /// 約定されるロット数を取得
+    /// </summary>
+    /// <param name="lot"></param>
+    /// <returns></returns>
+    public int GetExecuteLot(int lot)
+    {
+        return Lot > lot ? lot : Lot;
+    }
+    
     public bool Delete()
     {
         var record = Context.order_table.FirstOrDefault(r => r.id == Id);
@@ -52,6 +87,14 @@ public class Order
 
         Context.order_table.Remove(record);
         return true;
+    }
+
+    private void SaveChanges()
+    {
+        var record = Context.order_table.First(r => r.id == Id);
+        record.price = Price;
+        record.lot = Lot;
+        Context.SaveChanges();
     }
 
     /// <summary>
@@ -131,7 +174,10 @@ public class Order
     /// <returns></returns>
     public static Order? GetMinSellOrder(Item item)
     {
-        var record = Context.order_table.Where(r => r.item_id == item.Name && r.sell).OrderByDescending(r => r.price)
+        var record = Context.order_table
+            .Where(r => r.item_id == item.Name && r.sell)
+            .OrderBy(r => r.price)
+            .ThenBy(r => r.id)
             .FirstOrDefault();
 
         if (record==null)
@@ -151,7 +197,10 @@ public class Order
     /// <returns></returns>
     public static Order? GetMaxBuyOrder(Item item)
     {
-        var record = Context.order_table.Where(r => r.item_id == item.Name && r.buy).OrderBy(r => r.price)
+        var record = Context.order_table
+            .Where(r => r.item_id == item.Name && r.buy)
+            .OrderByDescending(r => r.price)
+            .ThenBy(r => r.id)
             .FirstOrDefault();
 
         if (record==null)
