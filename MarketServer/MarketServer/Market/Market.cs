@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
-using MarketServer.data;
-using MarketServer.util;
+using MarketServer.Data;
+using MarketServer.Utility;
 
 namespace MarketServer.Market;
 

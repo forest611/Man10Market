@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using MarketServer.data;
+using MarketServer.Data;
 using MarketServer.Model;
 
-namespace MarketServer.util;
+namespace MarketServer.Utility;
 
 public static class Logger
 {

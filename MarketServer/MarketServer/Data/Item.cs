@@ -1,6 +1,6 @@
 using MarketServer.Model;
 
-namespace MarketServer.data;
+namespace MarketServer.Data;
 
 /// <summary>
 /// 取引アイテムの情報を管理するクラス

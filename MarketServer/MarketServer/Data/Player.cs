@@ -1,4 +1,4 @@
-namespace MarketServer.data;
+namespace MarketServer.Data;
 
 /// <summary>
 /// プレイヤー 資産情報などを探すキーとして扱う

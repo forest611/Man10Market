@@ -1,4 +1,4 @@
-namespace MarketServer.data;
+namespace MarketServer.Data;
 
 public class Location
 {

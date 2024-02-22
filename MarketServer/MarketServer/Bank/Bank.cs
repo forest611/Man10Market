@@ -1,4 +1,4 @@
-using MarketServer.data;
+using MarketServer.Data;
 using MarketServer.Market;
 
 namespace MarketServer.Bank;

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using MarketServer.data;
+using MarketServer.Data;
 using MarketServer.Model;
-using MarketServer.util;
+using MarketServer.Utility;
 
 namespace MarketServer.ItemBank;
 

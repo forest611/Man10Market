@@ -1,6 +1,6 @@
-using MarketServer.data;
+using MarketServer.Data;
 using MarketServer.Model;
-using static MarketServer.data.Item;
+using static MarketServer.Data.Item;
 
 namespace MarketServer.Market;
 
