@@ -11,6 +11,7 @@ public class Item
     public string Name { get; }
 
     private static readonly HashSet<Item> ItemSet = new();
+    public static Item EmptyItem => new(0,"");
 
     private Item(int id, string name)
     {
