@@ -50,9 +50,9 @@ public class Order
     /// 指定注文を成行で約定する
     /// </summary>
     /// <param name="player">約定ユーザー</param>
-    /// <param name="requestLot">希望数</param>
+    /// <param name="requestLot">希望数　参照元の値が変更されます</param>
     /// <returns>約定が成立した数</returns>
-    private TradeResult ExecuteMarketOrder(Player player,int requestLot)
+    private TradeResult ExecuteMarketOrder(Player player,ref int requestLot)
     {
         if (IsEmpty())
         {
@@ -108,7 +108,10 @@ public class Order
         //取引後のロット数を保存
         Lot -= tradeLot;
         SaveChanges();
-        
+
+        //トレードした分だけ減らす
+        requestLot -= tradeLot;
+
         return TradeResult.Success(Item,Price,tradeLot);
     }
    
@@ -316,7 +319,7 @@ public class Order
         while (remainingLot > 0)
         {
             var order = GetMinSellOrder(item);
-            var result = order.ExecuteMarketOrder(player, remainingLot);
+            var result = order.ExecuteMarketOrder(player,ref remainingLot);
             resultList.Add(result);
             
             //所持金不足
@@ -330,8 +333,6 @@ public class Order
             {
                 break;
             }
-            
-            remainingLot -= result.Lot;
         }
         return resultList;
     }
@@ -345,7 +346,7 @@ public class Order
         while (remainingLot > 0)
         {
             var order = GetMaxBuyOrder(item);
-            var result = order.ExecuteMarketOrder(player, remainingLot);
+            var result = order.ExecuteMarketOrder(player, ref remainingLot);
             resultList.Add(result);
 
             //アイテム不足
@@ -359,8 +360,6 @@ public class Order
             {
                 break;
             }
-
-            remainingLot -= result.Lot;
         }
 
         return resultList;
