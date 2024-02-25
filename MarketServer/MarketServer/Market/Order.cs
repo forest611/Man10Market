@@ -111,17 +111,7 @@ public class Order
         
         return TradeResult.Success(Item,Price,tradeLot);
     }
-
-    /// <summary>
-    /// 約定されるロット数を取得
-    /// </summary>
-    /// <param name="lot"></param>
-    /// <returns></returns>
-    public int GetExecuteLot(int lot)
-    {
-        return Lot > lot ? lot : Lot;
-    }
-    
+   
     /// <summary>
     /// DBから注文を消すときはこれを呼ぶ
     /// </summary>
