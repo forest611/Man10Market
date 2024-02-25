@@ -137,16 +137,18 @@ public class ItemBank
             if (record == null)
             {
                 Create(context);
+                tcs.SetResult(false);
+                return;
             }
 
             //個数が足りない
-            if (record!.amount < amount)
+            if (record.amount < amount)
             {
                 tcs.SetResult(false);
                 return;
             }
             
-            record!.amount -= amount;
+            record.amount -= amount;
             context.SaveChanges();
             Logger.StorageLog(Item,null,Player,StorageActionType.AddItem,0,0,new Location());
             tcs.SetResult(true);
