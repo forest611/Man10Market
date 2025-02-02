@@ -1077,7 +1077,12 @@ public class MappRenderer extends MapRenderer implements Listener {
         File folder = new File(plugin.getDataFolder(), File.separator + "images");
 
         ArrayList<File> files = new  ArrayList<File>();
-        listFolder(plugin.getDataFolder()+"/images",true,files);
+
+        if (!folder.exists()){
+            folder.mkdirs();
+        }
+
+        listFolder(folder.getPath(),true,files);
 
         for (File f : files) {
             if (f.isFile()){

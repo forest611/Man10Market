@@ -7,11 +7,11 @@ import red.man10.man10itembank.menu.MenuFramework
 import red.man10.man10market.Market
 import red.man10.man10market.Util
 
-class MainMenu(p: Player, page: Int) : MenuFramework(p, 54, "§6§lMan10中央取引所") {
+class MainMenu(p: Player, private val page: Int) : MenuFramework(p, 54, "§6§lMan10中央取引所") {
 
-    init {
+    override fun init() {
 
-        setClickListener { it.isCancelled = true }
+        setClickAction { it.isCancelled = true }
         val itemIndex = Market.getItemIndex()
 
 

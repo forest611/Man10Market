@@ -9,11 +9,11 @@ import red.man10.man10market.Man10Market
 import red.man10.man10market.Market
 import red.man10.man10market.Util
 
-class BuyMenu(p: Player, item: String) : MenuFramework(p, 9, "§a§lクリックしてアイテムを買う") {
+class BuyMenu(p: Player, private val item: String) : MenuFramework(p, 9, "§a§lクリックしてアイテムを買う") {
 
     private val tradeLot = arrayOf(1, 2, 4, 8, 16, 32, 64)
 
-    init {
+    override fun init() {
 
         val data = ItemBankAPI.getItemData(item)
 

@@ -10,7 +10,7 @@ import red.man10.man10market.Market
 
 class SellMenu(p: Player) : MenuFramework(p, 54, "§c§lアイテムを売る") {
 
-    init {
+    override fun init() {
         val putButton = Button(Material.RED_STAINED_GLASS_PANE)
         putButton.title("§c§lクリックしてすべて売る")
         putButton.lore(mutableListOf("§c売却に失敗したアイテムは/mibに保存されます"))
@@ -21,7 +21,7 @@ class SellMenu(p: Player) : MenuFramework(p, 54, "§c§lアイテムを売る") 
 
         arrayOf(45, 46, 47, 48, 49, 50, 51, 52, 53).forEach { setButton(putButton, it) }
 
-        setCloseListener { e ->
+        setCloseAction { e ->
             sellItems(p, e.inventory)
         }
     }
