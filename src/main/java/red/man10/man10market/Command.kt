@@ -18,6 +18,7 @@ import red.man10.man10market.map.PriceMap
 import red.man10.man10market.menu.BuyMenu
 import red.man10.man10market.menu.MainMenu
 import red.man10.man10market.menu.SellMenu
+import red.man10.man10market.assistant.Assistant
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -185,6 +186,20 @@ object Command : CommandExecutor {
 
                 Market.sendMarketBuy(sender.uniqueId, item, lot)
 
+            }
+
+            "gpt" -> {
+                if (sender !is Player) return false
+                if (!sender.hasPermission(OP)) return false
+
+                if (args.size < 2) {
+                    msg(sender, "§c§l/mce gpt <質問内容>")
+                    return true
+                }
+
+                val question = args.drop(1).joinToString(" ")
+                Assistant.getInstance().ask(sender, question)
+                return true
             }
 
             "marketsell" -> {

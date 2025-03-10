@@ -8,8 +8,8 @@ import kotlin.time.Duration.Companion.seconds
  */
 data class AssistantConfig(
     val apiKey: String,
-    val model: String = "gpt-3.5-turbo",
+    val model: String = "gpt-4o",
     val timeout: Timeout = Timeout(socket = 60.seconds),
     val temperature: Double = 0.7,
-    val maxTokens: Int = 500
+    val maxTokens: Int = 50000
 )
