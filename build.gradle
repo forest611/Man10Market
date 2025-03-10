@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.kotlin.jvm' version '1.7.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.0'
 }
 
 group = 'red.man10'
@@ -23,8 +23,9 @@ dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT'
     compileOnly fileTree(dir: 'libs', include: '*.jar')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'com.aallam.openai:openai-client:3.7.0'  // OpenAI APIクライアント
-    implementation 'io.ktor:ktor-client-cio:2.3.9'  // OpenAI APIクライアントの依存関係
+    implementation "org.jetbrains.kotlin:kotlin-reflect"
+    implementation 'com.aallam.openai:openai-client:4.0.1'  // OpenAI APIクライアント
+    implementation 'io.ktor:ktor-client-cio:2.3.3'  // OpenAI APIクライアントの依存関係
 }
 
 def targetJavaVersion = 17
@@ -43,6 +44,10 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
+tasks.withType(Jar) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 processResources {
     def props = [version: version]
     inputs.properties props
@@ -53,11 +58,11 @@ processResources {
 }
 compileKotlin {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 }
 compileTestKotlin {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 }

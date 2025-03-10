@@ -4,6 +4,7 @@ import com.aallam.openai.api.chat.ChatCompletion
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
+import com.aallam.openai.api.http.Timeout
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import kotlinx.coroutines.runBlocking
@@ -16,6 +17,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import org.bukkit.Bukkit
 
 /**
  * Man10Market用のAIアシスタント機能を提供するクラス
@@ -37,6 +39,8 @@ class Assistant private constructor() {
 
         fun setup(plugin: Man10Market) {
             this.plugin = plugin
+            this.instance = Assistant()
+            this.instance!!.initialize(AssistantConfig())
         }
     }
 
@@ -45,7 +49,9 @@ class Assistant private constructor() {
      */
     fun initialize(config: AssistantConfig) {
         this.config = config
-        this.openAI = OpenAI(config.apiKey)
+        this.openAI = OpenAI(
+            token = config.apiKey
+        )
     }
 
     /**
@@ -119,6 +125,8 @@ class Assistant private constructor() {
                 Util.msg(player, "§c申し訳ありません。応答の生成に失敗しました。")
                 return@runBlocking null
             }
+
+            Bukkit.getLogger().info("Assistant response: $content")
 
             val command = parseResponse(content)
             if (command == null) {

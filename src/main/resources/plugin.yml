@@ -3,7 +3,6 @@ version: '1.0'
 main: red.man10.man10market.Man10Market
 api-version: 1.19
 depend:
-  - Man10CommonLibs
   - Man10Bank
   - Man10ItemBank
 commands:
