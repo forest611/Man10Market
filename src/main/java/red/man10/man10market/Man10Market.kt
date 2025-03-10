@@ -16,6 +16,10 @@ class Man10Market : JavaPlugin() {
         var csvPath = ""
 
         private var apiKey = ""
+
+        fun setupAssistant() {
+            Assistant.setup(instance, apiKey)
+        }
     }
 
 
@@ -34,7 +38,7 @@ class Man10Market : JavaPlugin() {
         loadMarketConfig()
         MarketData.init()
 
-        Assistant.setup(this, apiKey)
+        setupAssistant()
     }
 
     override fun onDisable() {

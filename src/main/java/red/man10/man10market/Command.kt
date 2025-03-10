@@ -82,6 +82,9 @@ object Command : CommandExecutor {
                         Market.runTransactionQueue()
                         sender.sendMessage("§l注文執行システムの再開")
 
+                        Man10Market.setupAssistant()
+                        sender.sendMessage("§lAIアシスタントの再起動")
+
                         isMarketOpen = true
 
                         sender.sendMessage("§l市場システムのリロード完了")
@@ -196,6 +199,8 @@ object Command : CommandExecutor {
                     msg(sender, "§c§l/mce gpt <質問内容>")
                     return true
                 }
+
+                msg(sender, "§aアシスタントの応答を待っています...§k§lX")
 
                 val question = args.drop(1).joinToString(" ")
                 Assistant.getInstance().ask(sender, question)

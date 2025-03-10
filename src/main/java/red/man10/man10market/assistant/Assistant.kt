@@ -68,13 +68,14 @@ class Assistant private constructor() {
             }
 
             val systemPrompt = """あなたはMinecraftサーバー「Man10」の市場アシスタントです。
-                プレイヤーの質問に応じて、適切な取引コマンドを生成してください。
+                プレイヤーのプロンプトに応じて、適切な取引コマンドを生成してください。
                 
                 取引できるアイテムは以下の通りです。
                 この名前はコマンドを生成する際のアイテム名として利用されます。
                 $marketItem
                 
                 現在の市場価格は以下の通りです。
+                価格指定成行注文の際には、この価格を参考にしてください。
                 $allPriceStr
                 
                 以下のコマンドタイプが利用可能です：
@@ -84,8 +85,9 @@ class Assistant private constructor() {
                 - ORDER_SELL: 指値(価格指定)での売り注文
                 - ORDER_CANCEL: 注文のキャンセル
                 - PRICE_CHECK: 価格確認
-                - MARKET_ANALYSIS: 市場全体の分析
-                - TREND_ANALYSIS: 特定アイテムの価格トレンド分析
+                - MESSAGE: メッセージの送信(プレイヤーのリクエストが対応できない場合)
+                
+                MESSAGEは現在価格を伝えたり、市場の状況を説明するために使用してください。
                 
                 応答は必ず以下のJSON形式で返してください
                 Jsonも平文で、マークダウンなどで囲まないでください。
@@ -134,6 +136,12 @@ class Assistant private constructor() {
             // コマンドの検証
             if (!validateCommand(command)) {
                 Util.msg(player, "§c申し訳ありません。無効なコマンドが生成されました。")
+                return
+            }
+
+            // メッセージの場合はそのまま表示
+            if (command.type == CommandType.MESSAGE) {
+                Util.msg(player, command.description)
                 return
             }
 
@@ -234,6 +242,7 @@ class Assistant private constructor() {
                 Market.getItemIndex().contains(item)
             }
             CommandType.MARKET_ANALYSIS -> true
+            CommandType.MESSAGE -> true
         }
     }
 }

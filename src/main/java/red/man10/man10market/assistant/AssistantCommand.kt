@@ -11,7 +11,9 @@ enum class CommandType {
     ORDER_CANCEL,      // 注文のキャンセル (/mce ordercancel)
     PRICE_CHECK,       // 価格確認 (/mce price)
     MARKET_ANALYSIS,   // 市場分析（複数の統計情報を収集）
-    TREND_ANALYSIS     // トレンド分析（特定アイテムの価格推移）
+    TREND_ANALYSIS,    // トレンド分析（特定アイテムの価格推移）
+    MESSAGE            // メッセージ送信
+
 }
 
 /**
@@ -41,6 +43,7 @@ data class AssistantCommand(
             CommandType.PRICE_CHECK -> "/mce price ${parameters["item"]}"
             CommandType.MARKET_ANALYSIS -> "/mce allprice"  // 全体の市場分析用
             CommandType.TREND_ANALYSIS -> "/mce price ${parameters["item"]}"  // 個別アイテムの分析用
+            CommandType.MESSAGE -> ""
         }
     }
 
