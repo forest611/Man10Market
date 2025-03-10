@@ -1,13 +1,9 @@
 package red.man10.man10market.assistant
 
-import com.aallam.openai.api.chat.ChatCompletion
-import com.aallam.openai.api.chat.ChatCompletionRequest
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
-import com.aallam.openai.api.http.Timeout
-import com.aallam.openai.api.model.ModelId
-import com.aallam.openai.client.OpenAI
-import kotlinx.coroutines.runBlocking
+import com.openai.client.OpenAIClient
+import com.openai.client.okhttp.OpenAIOkHttpClient
+import com.openai.models.ChatCompletionCreateParams
+import com.openai.models.ChatModel
 import org.bukkit.entity.Player
 import red.man10.man10market.Man10Market
 import red.man10.man10market.MarketData
@@ -24,7 +20,7 @@ import org.bukkit.Bukkit
  * 市場での取引のアドバイスや、価格分析などを行う
  */
 class Assistant private constructor() {
-    private lateinit var openAI: OpenAI
+    private lateinit var openAI: OpenAIClient
     private lateinit var config: AssistantConfig
 
     companion object {
@@ -49,9 +45,9 @@ class Assistant private constructor() {
      */
     fun initialize(config: AssistantConfig) {
         this.config = config
-        this.openAI = OpenAI(
-            token = config.apiKey
-        )
+        this.openAI = OpenAIOkHttpClient.builder()
+            .apiKey(config.apiKey)
+            .build()
     }
 
     /**
@@ -60,7 +56,7 @@ class Assistant private constructor() {
      * @param question 質問内容
      * @return 生成されたコマンド（該当する場合）
      */
-    fun ask(player: Player, question: String): AssistantCommand? = runBlocking {
+    fun ask(player: Player, question: String) {
 
             val marketItem = Market.getItemIndex() // アイテムのインデックスを取得
 
@@ -104,26 +100,22 @@ class Assistant private constructor() {
                 }""".trimIndent()
 
         try {
-            val completion = openAI.chatCompletion(
-                ChatCompletionRequest(
-                    model = ModelId(config.model),
-                    messages = listOf(
-                        ChatMessage(
-                            role = ChatRole.System,
-                            content = systemPrompt
-                        ),
-                        ChatMessage(
-                            role = ChatRole.User,
-                            content = question
-                        )
-                    )
-                )
-            )
+            // OpenAI APIリクエストの作成
+            val params = ChatCompletionCreateParams.builder()
+                .model(ChatModel.of(config.model))
+                .addSystemMessage(systemPrompt)
+                .addUserMessage(question)
+                .temperature(config.temperature)
+                .build()
 
-            val content = completion.choices.firstOrNull()?.message?.content
-            if (content.isNullOrBlank()) {
+            // APIリクエストの実行
+            val chatCompletion = openAI.chat().completions().create(params)
+
+            // 応答の取得
+            val content = if (chatCompletion.choices().isEmpty()) null else chatCompletion.choices()[0].message().content().get()
+            if (content == null) {
                 Util.msg(player, "§c申し訳ありません。応答の生成に失敗しました。")
-                return@runBlocking null
+                return
             }
 
             Bukkit.getLogger().info("Assistant response: $content")
@@ -131,13 +123,13 @@ class Assistant private constructor() {
             val command = parseResponse(content)
             if (command == null) {
                 Util.msg(player, "§c申し訳ありません。コマンドの生成に失敗しました。")
-                return@runBlocking null
+                return
             }
 
             // コマンドの検証
             if (!validateCommand(command)) {
                 Util.msg(player, "§c申し訳ありません。無効なコマンドが生成されました。")
-                return@runBlocking null
+                return
             }
 
             // コマンドの説明を表示
@@ -154,12 +146,9 @@ class Assistant private constructor() {
                     )
                     .build()
             )
-            command
-
         } catch (e: Exception) {
             plugin.logger.warning("Failed to generate command: ${e.message}")
             Util.msg(player, "§c申し訳ありません。エラーが発生しました。")
-            null
         }
     }
 
