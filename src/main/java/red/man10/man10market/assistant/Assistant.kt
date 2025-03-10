@@ -87,7 +87,8 @@ class Assistant private constructor() {
                 - MARKET_ANALYSIS: 市場全体の分析
                 - TREND_ANALYSIS: 特定アイテムの価格トレンド分析
                 
-                応答は必ず以下のJSON形式で返してください：
+                応答は必ず以下のJSON形式で返してください
+                Jsonも平文で、マークダウンなどで囲まないでください。
                 {
                     \"type\": \"コマンドタイプ\",
                     \"action\": \"アクション名\",
@@ -97,7 +98,10 @@ class Assistant private constructor() {
                         \"price\": 価格
                     },
                     \"description\": \"実行内容の説明\"
-                }""".trimIndent()
+                }
+                
+                Jsonが生成できない場合は、エラーメッセージを返してください。
+                """.trimIndent()
 
         try {
             // OpenAI APIリクエストの作成
@@ -122,7 +126,8 @@ class Assistant private constructor() {
 
             val command = parseResponse(content)
             if (command == null) {
-                Util.msg(player, "§c申し訳ありません。コマンドの生成に失敗しました。")
+                Util.msg(player, "§cコマンドの生成に失敗しました。")
+                Util.msg(player, "§c$content")
                 return
             }
 
