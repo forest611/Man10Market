@@ -33,10 +33,10 @@ class Assistant private constructor() {
             }
         }
 
-        fun setup(plugin: Man10Market) {
+        fun setup(plugin: Man10Market, apiKey : String) {
             this.plugin = plugin
             this.instance = Assistant()
-            this.instance!!.initialize(AssistantConfig())
+            this.instance!!.initialize(AssistantConfig(apiKey))
         }
     }
 
@@ -122,7 +122,7 @@ class Assistant private constructor() {
                 return
             }
 
-            Bukkit.getLogger().info("Assistant response: $content")
+//            Bukkit.getLogger().info("Assistant response: $content")
 
             val command = parseResponse(content)
             if (command == null) {

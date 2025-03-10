@@ -14,6 +14,8 @@ class Man10Market : JavaPlugin() {
 
         var isMarketOpen = false
         var csvPath = ""
+
+        private var apiKey = ""
     }
 
 
@@ -25,14 +27,14 @@ class Man10Market : JavaPlugin() {
         instance = this
         bankAPI = BankAPI(this)
 
-        Assistant.setup(this)
-
         getCommand("mce")!!.setExecutor(Command)
         getCommand("mstock")!!.setExecutor(Stock)
 
         MappRenderer.setup(this)
         loadMarketConfig()
         MarketData.init()
+
+        Assistant.setup(this, apiKey)
     }
 
     override fun onDisable() {
@@ -47,6 +49,7 @@ class Man10Market : JavaPlugin() {
 
         isMarketOpen = config.getBoolean("MarketOpen", false)
         csvPath = config.getString("CSVPath","")?:""
+        apiKey = config.getString("OpenAIKey","")?:""
     }
 
     fun saveMarketConfig() {
