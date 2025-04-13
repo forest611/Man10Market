@@ -1,6 +1,7 @@
 package red.man10.man10market.assistant
 
 import org.bukkit.entity.Player
+import org.checkerframework.checker.units.qual.t
 import red.man10.man10market.Market
 import red.man10.man10market.Util
 import red.man10.man10market.Man10Market
@@ -122,43 +123,49 @@ class TaskExecutor(private val plugin: Man10Market, private val assistant: Assis
         """.trimIndent()
         
         val response = assistant.sendRequest(player, prompt, false)
-        
-        try {
-            // レスポンスからJSON部分を抽出する試み
-            val jsonPattern = "\\{[\\s\\S]*?\\}"
-            val regex = Regex(jsonPattern)
-            val matchResult = regex.find(response)
-            
-            if (matchResult != null) {
-                val jsonStr = matchResult.value
-                
-                // 抽出したJSONをパース
-                val jsonElement = JsonParser.parseString(jsonStr)
-                if (jsonElement.isJsonObject) {
-                    val jsonObject = jsonElement.asJsonObject
-                    val satisfied = jsonObject.get("satisfied")?.asBoolean ?: false
-                    val reason = jsonObject.get("reason")?.asString ?: "理由が提供されていません"
-                    
-                    return TaskResult(
-                        success = true,
-                        message = reason,
-                        data = mapOf(
-                            "satisfied" to satisfied,
-                            "reason" to reason,
-                            "context" to contextInfo
-                        )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            plugin.logger.warning("Failed to parse condition check response: ${e.message}")
-        }
-        
-        return TaskResult(
+
+        val result = TaskResult(
             success = false,
             message = "条件チェックの結果をパースできませんでした",
             data = mapOf("response" to response)
         )
+        
+        return try {
+            // レスポンスからJSON部分を抽出する試み
+            val jsonPattern = "\\{[\\s\\S]*?\\}"
+            val regex = Regex(jsonPattern)
+            val matchResult = regex.find(response)
+
+            if (matchResult == null) {
+                return result
+            }
+            
+            val jsonStr = matchResult.value
+            
+            // 抽出したJSONをパース
+            val jsonElement = JsonParser.parseString(jsonStr)
+
+            if (!jsonElement.isJsonObject) {
+                return result
+            }
+
+            val jsonObject = jsonElement.asJsonObject
+            val satisfied = jsonObject.get("satisfied")?.asBoolean ?: false
+            val reason = jsonObject.get("reason")?.asString ?: "理由が提供されていません"
+                
+            return TaskResult(
+                success = true,
+                message = reason,
+                data = mapOf(
+                    "satisfied" to satisfied,
+                    "reason" to reason,
+                    "context" to contextInfo
+                )
+            )
+        } catch (e: Exception) {
+            plugin.logger.warning("Failed to parse condition check response: ${e.message}")
+            result
+        }
     }
 
     /**

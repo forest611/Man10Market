@@ -65,7 +65,7 @@ class Assistant private constructor() {
      */
     fun ask(player: Player, request: String) {
         // プレイヤーに処理開始を通知
-        Util.msg(player, "§a§lリクエストを処理しています...")
+        Util.msg(player, "リクエスト>> $request")
         
         // Bukkitのスケジューラを使用して非同期処理を実行
         plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
@@ -76,24 +76,17 @@ class Assistant private constructor() {
                     Util.msg(player, "§c§lリクエストの分析に失敗しました。もう一度お試しください。")
                     return@Runnable
                 }
-                
-                // タスクの数を通知
-                Util.msg(player, "§a§l${taskList.tasks.size}個のタスクに分割しました。順番に実行します...")
-                
+                                
                 // タスクの実行結果を保存するリスト
                 val results = mutableListOf<Map<String, Any>>()
                 
                 // 実行するタスクリスト
                 var remainingTasks = taskList.tasks.toMutableList()
-                var taskIndex = 0
                 
                 // 全てのタスクが完了するまで繰り返す
                 while (remainingTasks.isNotEmpty()) {
                     val taskInfo = remainingTasks.removeAt(0)
                     val subTask = taskInfo.toSubTask()
-                    
-                    // 現在実行中のタスクを通知
-                    Util.msg(player, "§e§lタスク ${++taskIndex}: ${subTask.description}")
                     
                     // タスクを実行
                     val result = taskExecutor.executeSubTask(player, subTask)
@@ -109,12 +102,12 @@ class Assistant private constructor() {
                     results.add(resultMap)
                     
                     // 実行結果を通知
-                    val statusPrefix = if (result.success) "§a§l成功: " else "§c§l失敗: "
+                    val statusPrefix = if (result.success) "§a成功: " else "§c失敗: "
                     Util.msg(player, statusPrefix + result.message)
                     
                     // 失敗した場合は中断
                     if (!result.success && subTask.type != TaskType.CONDITION_CHECK) {
-                        Util.msg(player, "§c§lタスクの実行に失敗したため、処理を中断します。")
+                        Util.msg(player, "§cタスクの実行に失敗したため、処理を中断します。")
                         break
                     }
                     
@@ -123,26 +116,29 @@ class Assistant private constructor() {
                         val updatedTasks = reevaluateTasks(player, request, results, remainingTasks)
                         if (updatedTasks != null) {
                             remainingTasks = updatedTasks.toMutableList()
-                            Util.msg(player, "§b§l残りのタスクを再評価しました。${remainingTasks.size}個のタスクが残っています。")
                         }
                     }
                 }
-                
-                // 最終結果のレポートを生成
-                if (results.isNotEmpty()) {
-                    val reportTask = SubTask(
-                        type = TaskType.RESULT_REPORT,
-                        description = "実行結果のレポート生成",
-                        parameters = mapOf("results" to results)
-                    )
-                    
-                    val reportResult = taskExecutor.executeSubTask(player, reportTask)
-                    if (reportResult.success) {
-                        Util.msg(player, "§b§l=== 実行結果レポート ===")
-                        Util.msg(player, reportResult.message)
-                    }
+
+                // 実行結果がない場合は終了
+                if (results.isEmpty()){
+                    return@Runnable
                 }
                 
+                // 最終結果のレポートを生成
+                val reportTask = SubTask(
+                    type = TaskType.RESULT_REPORT,
+                    description = "実行結果のレポート生成",
+                    parameters = mapOf("results" to results)
+                )
+                
+                val reportResult = taskExecutor.executeSubTask(player, reportTask)
+
+                // 実行結果を通知
+                if (reportResult.success) {
+                    Util.msg(player, "§l処理完了\n" + reportResult.message)
+                }
+            
             } catch (e: Exception) {
                 plugin.logger.warning("Failed to execute tasks: ${e.message}")
                 Util.msg(player, "§c§lエラーが発生しました: ${e.message}")
