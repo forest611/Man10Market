@@ -76,7 +76,8 @@ shadowJar {
     relocate 'kotlinx.coroutines', 'red.man10.man10market.libs.kotlinx.coroutines'
     relocate 'okhttp3', 'red.man10.man10market.libs.okhttp3'
     relocate 'retrofit2', 'red.man10.man10market.libs.retrofit2'
-    relocate 'com.google.gson', 'red.man10.man10market.libs.gson'
+    // Gsonはリロケーションしないように変更
+    // relocate 'com.google.gson', 'red.man10.man10market.libs.gson'
     
     // 出力ファイル名を設定
     archiveClassifier.set('')
