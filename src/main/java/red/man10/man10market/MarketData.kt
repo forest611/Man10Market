@@ -129,7 +129,9 @@ object MarketData {
         var estate = 0.0
 
         map.forEach {
-            estate += (dataMap[it.key]!!.bid * it.value)
+            if (dataMap[it.key] != null) {
+                estate += (dataMap[it.key]!!.bid * it.value)
+            }
         }
 
         return estate
