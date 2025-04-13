@@ -52,13 +52,34 @@ tasks.withType(Jar) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
+// shadowJarをデフォルトのビルドタスクに設定
+defaultTasks 'shadowJar'
+
+// buildタスクが実行されたときにshadowJarも実行されるように設定
+build.dependsOn shadowJar
+
 shadowJar {
-    // OpenAI Java APIクライアントとその依存関係をシェード
+    // すべての実装依存関係を含める
     dependencies {
         include(dependency('com.openai:openai-java'))
+        include(dependency('org.jetbrains.kotlinx:kotlinx-coroutines-core'))
+        include(dependency('org.jetbrains.kotlinx:kotlinx-coroutines-jdk8'))
+        // OpenAIの依存関係も含める
+        include(dependency('com.squareup.okhttp3:okhttp'))
+        include(dependency('com.squareup.retrofit2:retrofit'))
+        include(dependency('com.squareup.retrofit2:converter-gson'))
+        include(dependency('com.google.code.gson:gson'))
     }
+    
     // リロケーション設定
     relocate 'com.openai', 'red.man10.man10market.libs.openai'
+    relocate 'kotlinx.coroutines', 'red.man10.man10market.libs.kotlinx.coroutines'
+    relocate 'okhttp3', 'red.man10.man10market.libs.okhttp3'
+    relocate 'retrofit2', 'red.man10.man10market.libs.retrofit2'
+    relocate 'com.google.gson', 'red.man10.man10market.libs.gson'
+    
+    // 出力ファイル名を設定
+    archiveClassifier.set('')
 }
 
 processResources {
