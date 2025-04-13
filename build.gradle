@@ -27,6 +27,9 @@ dependencies {
     compileOnly "org.jetbrains.kotlin:kotlin-reflect"
     // OpenAI Java APIクライアント
     implementation 'com.openai:openai-java:0.33.0'
+    // Kotlinコルーチン
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3'
 }
 
 def targetJavaVersion = 17

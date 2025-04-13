@@ -6,14 +6,10 @@ import com.openai.models.ChatCompletionCreateParams
 import com.openai.models.ChatModel
 import org.bukkit.entity.Player
 import red.man10.man10market.Man10Market
-import red.man10.man10market.MarketData
-import red.man10.man10market.Market
 import red.man10.man10market.Util
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.event.ClickEvent
-import net.kyori.adventure.text.event.HoverEvent
-import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Bukkit
+import com.google.gson.Gson
+import com.google.gson.JsonParser
+import kotlinx.coroutines.*
 
 /**
  * Man10Market用のAIアシスタント機能を提供するクラス
@@ -22,6 +18,9 @@ import org.bukkit.Bukkit
 class Assistant private constructor() {
     private lateinit var openAI: OpenAIClient
     private lateinit var config: AssistantConfig
+    private lateinit var conversationManager: ConversationManager
+    private lateinit var taskExecutor: TaskExecutor
+    private val gson = Gson()
 
     companion object {
         private var instance: Assistant? = null
@@ -37,6 +36,8 @@ class Assistant private constructor() {
             this.plugin = plugin
             this.instance = Assistant()
             this.instance!!.initialize(AssistantConfig(apiKey))
+            // 会話マネージャーの初期化
+            ConversationManager.setup(plugin)
         }
     }
 
@@ -48,202 +49,223 @@ class Assistant private constructor() {
         this.openAI = OpenAIOkHttpClient.builder()
             .apiKey(config.apiKey)
             .build()
+        this.conversationManager = ConversationManager.getInstance()
+        this.taskExecutor = TaskExecutor(plugin, this)
     }
 
     /**
-     * プレイヤーからの質問に応答し、適切なコマンドを生成する
-     * @param player 質問したプレイヤー
-     * @param question 質問内容
-     * @return 生成されたコマンド（該当する場合）
+     * 最初のリクエストを送る
+     * 
+     * @param player 対話中のプレイヤー
+     * @param request リクエスト
      */
-    fun ask(player: Player, question: String) {
-
-            val marketItem = Market.getItemIndex() // アイテムのインデックスを取得
-
-            val allPriceStr = mutableListOf<String>()
-
-            Market.getItemIndex().forEach {
-                val price = Market.getPrice(it)
-                allPriceStr.add("アイテム名:$it 価格:${price.price}円 売値:${price.ask}円 買値:${price.bid}円")
-            }
-
-            val systemPrompt = """あなたはMinecraftサーバー「Man10」の市場アシスタントです。
-                プレイヤーのプロンプトに応じて、適切な取引コマンドを生成してください。
-                
-                取引できるアイテムは以下の通りです。
-                この名前はコマンドを生成する際のアイテム名として利用されます。
-                $marketItem
-                
-                現在の市場価格は以下の通りです。
-                価格指定成行注文の際には、この価格を参考にしてください。
-                $allPriceStr
-                
-                以下のコマンドタイプが利用可能です：
-                - MARKET_BUY: 市場価格(成り行き注文)での購入
-                - MARKET_SELL: 市場価格(成り行き注文)での売却
-                - ORDER_BUY: 指値(価格指定)での買い注文
-                - ORDER_SELL: 指値(価格指定)での売り注文
-                - ORDER_CANCEL: 注文のキャンセル
-                - PRICE_CHECK: 価格確認
-                - MESSAGE: メッセージの送信(プレイヤーのリクエストが対応できない場合)
-                
-                MESSAGEは現在価格を伝えたり、市場の状況を説明するために使用してください。
-                
-                応答は必ず以下のJSON形式で返してください
-                Jsonも平文で、マークダウンなどで囲まないでください。
-                {
-                    \"type\": \"コマンドタイプ\",
-                    \"action\": \"アクション名\",
-                    \"parameters\": {
-                        \"item\": \"アイテム名\",
-                        \"amount\": 数量,
-                        \"price\": 価格
-                    },
-                    \"description\": \"実行内容の説明\"
+    fun ask(player: Player, request: String) {
+        // プレイヤーに処理開始を通知
+        Util.msg(player, "§a§lリクエストを処理しています...")
+        
+        // 非同期でタスク処理を実行
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // リクエスト内容をタスクに分割
+                val taskList = requestToTasks(player, request)
+                if (taskList == null || taskList.tasks.isEmpty()) {
+                    Util.msg(player, "§c§lリクエストの分析に失敗しました。もう一度お試しください。")
+                    return@launch
                 }
                 
-                Jsonが生成できない場合は、エラーメッセージを返してください。
-                """.trimIndent()
+                // タスクの数を通知
+                Util.msg(player, "§a§l${taskList.tasks.size}個のタスクに分割しました。順番に実行します...")
+                
+                // タスクの実行結果を保存するリスト
+                val results = mutableListOf<Map<String, Any>>()
+                
+                // 各タスクを順番に実行
+                taskList.tasks.forEachIndexed { index, taskInfo ->
+                    val subTask = taskInfo.toSubTask()
+                    
+                    // 現在実行中のタスクを通知
+                    Util.msg(player, "§e§lタスク ${index + 1}/${taskList.tasks.size}: ${subTask.description}")
+                    
+                    // タスクを実行
+                    val result = taskExecutor.executeSubTask(player, subTask)
+                    
+                    // 結果をリストに追加
+                    results.add(
+                        mapOf(
+                            "task" to subTask.description,
+                            "type" to subTask.type.name,
+                            "success" to result.success,
+                            "message" to result.message,
+                            "data" to result.data
+                        )
+                    )
+                    
+                    // 実行結果を通知
+                    val statusPrefix = if (result.success) "§a§l成功: " else "§c§l失敗: "
+                    Util.msg(player, statusPrefix + result.message)
+                    
+                    // 失敗した場合は中断
+                    if (!result.success && subTask.type != TaskType.CONDITION_CHECK) {
+                        Util.msg(player, "§c§lタスクの実行に失敗したため、処理を中断します。")
+                        return@launch
+                    }
+                }
+                
+                // 最終結果のレポートを生成
+                if (results.isNotEmpty()) {
+                    val reportTask = SubTask(
+                        type = TaskType.RESULT_REPORT,
+                        description = "実行結果のレポート生成",
+                        parameters = mapOf("results" to results)
+                    )
+                    
+                    val reportResult = taskExecutor.executeSubTask(player, reportTask)
+                    if (reportResult.success) {
+                        Util.msg(player, "§b§l=== 実行結果レポート ===")
+                        Util.msg(player, reportResult.message)
+                    }
+                }
+                
+            } catch (e: Exception) {
+                plugin.logger.warning("Failed to execute tasks: ${e.message}")
+                Util.msg(player, "§c§lエラーが発生しました: ${e.message}")
+            }
+        }
+    }
 
+    /**
+     * リクエストをタスクリストに変換
+     * @return タスクのリスト、または変換に失敗した場合はnull
+     */
+    private fun requestToTasks(player: Player, request: String): TaskList? {
+        val prompt = """
+            下記のリクエストを以下のJSONフォーマットに従って分割してください。
+            各タスクには適切なタイプを指定し、必要なパラメータを含めてください。
+            
+            リクエスト:
+            ```$request```
+            
+            タスクタイプ:
+            - info_gathering: 情報収集タスク（例：アイテム価格の取得）
+            - condition_check: 条件チェックタスク（例：価格が指定値以下か確認）
+            - trade_execution: 取引実行タスク（例：アイテムの購入・売却）
+            - result_report: 結果レポートタスク
+            
+            パラメータ詳細:
+            1. info_gathering (情報収集)
+               - {"item": "アイテム名"} - 特定アイテムの情報を取得
+               - {} - 全アイテムの情報を取得
+            
+            2. condition_check (条件チェック)
+               - {"item": "アイテム名", "price": 100} - アイテムの価格が指定値と比較
+               - {"item": "アイテム名"} - アイテムの存在確認
+            
+            3. trade_execution (取引実行) - 必ず「action」パラメータを含めてください
+               - 成行買い: {"action": "market_buy", "item": "アイテム名", "amount": 10}
+               - 成行売り: {"action": "market_sell", "item": "アイテム名", "amount": 10}
+               - 指値買い: {"action": "order_buy", "item": "アイテム名", "amount": 10, "price": 100}
+               - 指値売り: {"action": "order_sell", "item": "アイテム名", "amount": 10, "price": 100}
+            
+            JSONフォーマット:
+            ```json
+            {
+                "tasks": [
+                    {
+                        "task": "タスク1の説明",
+                        "type": "info_gathering",
+                        "parameters": {"item": "ダイヤモンド"}
+                    },
+                    {
+                        "task": "タスク2の説明",
+                        "type": "condition_check",
+                        "parameters": {"item": "ダイヤモンド", "price": 100}
+                    },
+                    ...
+                ]
+            }
+            ```
+            
+            JSONのみを返してください。他の説明は不要です。
+        """.trimIndent()
+        
+        // AIにリクエストを送信
+        val response = sendRequest(player, prompt, false)
+        
         try {
-            // OpenAI APIリクエストの作成
-            val params = ChatCompletionCreateParams.builder()
+            // JSONレスポンスを抽出
+            val jsonPattern = "\\{\\s*\"tasks\"\\s*:\\s*\\[.*?\\]\\s*\\}".toRegex(RegexOption.DOT_MATCHES_ALL)
+            val jsonMatch = jsonPattern.find(response)
+            
+            if (jsonMatch != null) {
+                val jsonStr = jsonMatch.value
+                return TaskList.fromJson(jsonStr)
+            } else {
+                // 完全なJSONオブジェクトとしてパースを試みる
+                return TaskList.fromJson(response)
+            }
+        } catch (e: Exception) {
+            plugin.logger.warning("Failed to parse tasks from response: ${e.message}")
+            return null
+        }
+    }
+
+    /**
+     * ユーザー/プラグインからのリクエストをAIに投げる関数
+     * @param player 対話中のプレイヤー
+     * @param prompt プロンプト
+     * @param isFromUser リクエスト元がユーザーかプラグインか
+     * @return AIの回答
+     */
+    fun sendRequest(player: Player, prompt: String, isFromUser: Boolean): String {
+        try {
+            // 会話履歴を取得
+            val conversationMessages = if (isFromUser) {
+                conversationManager.getConversationHistoryAsMessages(player)
+            } else {
+                // プラグインからのリクエストの場合は会話履歴を使用しない
+                emptyList()
+            }
+            
+            // システムプロンプトの作成
+            val systemPrompt = """あなたはMinecraftサーバー「Man10」の市場アシスタントです。
+                プレイヤーのプロンプトに応じて、適切な市場情報やアドバイスを提供してください。
+                
+                プレイヤーからのリクエストに応じて、必要な情報を取得し、適切な市場情報や取引コマンドを生成してください。
+                """.trimIndent()
+            
+            // APIリクエストの作成
+            var paramsBuilder = ChatCompletionCreateParams.builder()
                 .model(ChatModel.of(config.model))
                 .addSystemMessage(systemPrompt)
-                .addUserMessage(question)
-                .temperature(config.temperature)
-                .build()
-
-            // APIリクエストの実行
+            
+            // 会話履歴を追加
+            conversationMessages.forEach { messageAdder ->
+                paramsBuilder = messageAdder(paramsBuilder)
+            }
+            
+            // 現在のプロンプトを追加
+            paramsBuilder = paramsBuilder.addUserMessage(prompt)
+            
+            // APIリクエスト実行
+            val params = paramsBuilder.temperature(config.temperature).build()
             val chatCompletion = openAI.chat().completions().create(params)
-
+            
             // 応答の取得
-            val content = if (chatCompletion.choices().isEmpty()) null else chatCompletion.choices()[0].message().content().get()
-            if (content == null) {
-                Util.msg(player, "§c申し訳ありません。応答の生成に失敗しました。")
-                return
-            }
-
-//            Bukkit.getLogger().info("Assistant response: $content")
-
-            val command = parseResponse(content)
-            if (command == null) {
-                Util.msg(player, "§cコマンドの生成に失敗しました。")
-                Util.msg(player, "§c$content")
-                return
-            }
-
-            // コマンドの検証
-            if (!validateCommand(command)) {
-                Util.msg(player, "§c申し訳ありません。無効なコマンドが生成されました。")
-                return
-            }
-
-            // メッセージの場合はそのまま表示
-            if (command.type == CommandType.MESSAGE) {
-                Util.msg(player, command.description)
-                return
-            }
-
-            // コマンドの説明を表示
-            player.sendMessage(
-                Component.text()
-                    .append(Component.text(Util.prefix))
-                    .append(Component.text(command.description)
-                        .color(NamedTextColor.GREEN))
-                    .append(
-                        Component.text(" [クリックで実行]")
-                            .color(NamedTextColor.GOLD)
-                            .clickEvent(ClickEvent.runCommand(command.toExecutableCommand()))
-                            .hoverEvent(HoverEvent.showText(Component.text("実行されるコマンド: ${command.toExecutableCommand()}")))
-                    )
-                    .build()
-            )
-        } catch (e: Exception) {
-            plugin.logger.warning("Failed to generate command: ${e.message}")
-            Util.msg(player, "§c申し訳ありません。エラーが発生しました。")
-        }
-    }
-
-    /**
-     * 市場の状況を分析し、アドバイスを提供する
-     * @param player アドバイスを求めるプレイヤー
-     * @return 市場分析コマンド
-     */
-    fun analyzeMarket(player: Player): AssistantCommand {
-        return AssistantCommand.createMarketAnalysis()
-    }
-
-    /**
-     * 特定のアイテムの価格トレンドを分析する
-     * @param player 分析を求めるプレイヤー
-     * @param itemName アイテム名
-     * @return トレンド分析コマンド
-     */
-    fun analyzePriceTrend(player: Player, itemName: String): AssistantCommand {
-        return AssistantCommand.createTrendAnalysis(itemName)
-    }
-
-    /**
-     * AIの応答をAssistantCommandに変換
-     */
-    private fun parseResponse(response: String): AssistantCommand? {
-        return try {
-            val assistantResponse = AssistantResponse.fromJson(response)
-            if (assistantResponse == null) {
-                plugin.logger.warning("Failed to parse response to AssistantResponse\nResponse: $response")
-                return null
+            val content = if (chatCompletion.choices().isEmpty()) {
+                "応答の生成に失敗しました。"
+            } else {
+                chatCompletion.choices()[0].message().content().get()
             }
             
-            val command = assistantResponse.toCommand()
-            if (command == null) {
-                plugin.logger.warning("Failed to convert AssistantResponse to AssistantCommand\nResponse: $response")
-                return null
+            // ユーザーからのリクエストの場合は会話履歴を保存
+            if (isFromUser) {
+                conversationManager.saveConversation(player, prompt, content)
             }
             
-            command
+            return content
         } catch (e: Exception) {
-            plugin.logger.warning("Failed to parse response: ${e.message}\nResponse: $response")
-            null
-        }
-    }
-
-    /**
-     * コマンドの検証を行う
-     * @param command 検証するコマンド
-     * @param player プレイヤー
-     * @return 検証結果
-     */
-    private fun validateCommand(command: AssistantCommand): Boolean {
-        return when (command.type) {
-            CommandType.MARKET_BUY, CommandType.MARKET_SELL -> {
-                val item = command.parameters["item"] as? String
-                val amount = command.parameters["amount"] as? Int
-                if (item == null || amount == null || amount <= 0) {
-                    return false
-                }
-                Market.getItemIndex().contains(item)
-            }
-            CommandType.ORDER_BUY, CommandType.ORDER_SELL -> {
-                val item = command.parameters["item"] as? String
-                val amount = command.parameters["amount"] as? Int
-                val price = command.parameters["price"] as? Double
-                if (item == null || amount == null || price == null || amount <= 0 || price <= 0) {
-                    return false
-                }
-                Market.getItemIndex().contains(item)
-            }
-            CommandType.ORDER_CANCEL -> {
-                val orderId = command.parameters["orderId"] as? String
-                orderId != null
-            }
-            CommandType.PRICE_CHECK, CommandType.TREND_ANALYSIS -> {
-                val item = command.parameters["item"] as? String ?: return false
-                Market.getItemIndex().contains(item)
-            }
-            CommandType.MARKET_ANALYSIS -> true
-            CommandType.MESSAGE -> true
+            plugin.logger.warning("Failed to send request to AI: ${e.message}")
+            return "エラーが発生しました。後で再度お試しください。"
         }
     }
 }
-

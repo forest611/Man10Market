@@ -100,24 +100,41 @@ create table day_table
 create index day_table_item_id_year_month_day_index
     on day_table (item_id, year, month, day, date);
 
+CREATE TABLE IF NOT EXISTS assistant_conversation
+(
+    id              INT AUTO_INCREMENT,
+    uuid            VARCHAR(36)             NOT NULL,  -- プレイヤーのUUID
+    player          VARCHAR(16)             NOT NULL,  -- プレイヤー名
+    message         TEXT                    NOT NULL,  -- プレイヤーからのメッセージ
+    response        TEXT                    NOT NULL,  -- アシスタントからの応答
+    created_at      DATETIME DEFAULT NOW()  NOT NULL,  -- 作成日時
+    CONSTRAINT assistant_conversation_pk
+        PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS assistant_conversation_uuid_index
+    ON assistant_conversation (uuid);
+
+CREATE INDEX IF NOT EXISTS assistant_conversation_created_at_index
+    ON assistant_conversation (created_at);
 
 
-SELECT
-    DATE_FORMAT(date, '%Y-%m-%d %H:00:00') as 日付,
-    SUBSTRING_INDEX(GROUP_CONCAT(CAST(bid AS CHAR) ORDER BY date), ',', 1) AS 始値,
-    MIN(bid) AS 安値,
-    MAX(bid) AS 高値,
-    SUBSTRING_INDEX(GROUP_CONCAT(CAST(bid AS CHAR) ORDER BY date DESC), ',', 1) AS 終値,
-    SUM(volume) AS 出来高,
-    DATE(date) AS day,
-    HOUR(date) AS hour
-FROM
-    tick_table
-where
-    item_id='投票パール'
-GROUP BY
-    day,
-    hour
-ORDER BY
-    day,
-    hour;
+-- SELECT
+--     DATE_FORMAT(date, '%Y-%m-%d %H:00:00') as 日付,
+--     SUBSTRING_INDEX(GROUP_CONCAT(CAST(bid AS CHAR) ORDER BY date), ',', 1) AS 始値,
+--     MIN(bid) AS 安値,
+--     MAX(bid) AS 高値,
+--     SUBSTRING_INDEX(GROUP_CONCAT(CAST(bid AS CHAR) ORDER BY date DESC), ',', 1) AS 終値,
+--     SUM(volume) AS 出来高,
+--     DATE(date) AS day,
+--     HOUR(date) AS hour
+-- FROM
+--     tick_table
+-- where
+--     item_id='投票パール'
+-- GROUP BY
+--     day,
+--     hour
+-- ORDER BY
+--     day,
+--     hour;
