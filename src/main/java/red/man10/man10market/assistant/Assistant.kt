@@ -6,7 +6,6 @@ import red.man10.man10market.Util
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
-// コルーチンは使用しないため削除
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -84,26 +83,30 @@ class Assistant private constructor() {
                 // タスクの実行結果を保存するリスト
                 val results = mutableListOf<Map<String, Any>>()
                 
-                // 各タスクを順番に実行
-                taskList.tasks.forEachIndexed { index, taskInfo ->
+                // 実行するタスクリスト
+                var remainingTasks = taskList.tasks.toMutableList()
+                var taskIndex = 0
+                
+                // 全てのタスクが完了するまで繰り返す
+                while (remainingTasks.isNotEmpty()) {
+                    val taskInfo = remainingTasks.removeAt(0)
                     val subTask = taskInfo.toSubTask()
                     
                     // 現在実行中のタスクを通知
-                    Util.msg(player, "§e§lタスク ${index + 1}/${taskList.tasks.size}: ${subTask.description}")
+                    Util.msg(player, "§e§lタスク ${++taskIndex}: ${subTask.description}")
                     
                     // タスクを実行
                     val result = taskExecutor.executeSubTask(player, subTask)
                     
                     // 結果をリストに追加
-                    results.add(
-                        mapOf(
-                            "task" to subTask.description,
-                            "type" to subTask.type.name,
-                            "success" to result.success,
-                            "message" to result.message,
-                            "data" to result.data
-                        )
+                    val resultMap = mapOf(
+                        "task" to subTask.description,
+                        "type" to subTask.type.name,
+                        "success" to result.success,
+                        "message" to result.message,
+                        "data" to result.data
                     )
+                    results.add(resultMap)
                     
                     // 実行結果を通知
                     val statusPrefix = if (result.success) "§a§l成功: " else "§c§l失敗: "
@@ -112,7 +115,16 @@ class Assistant private constructor() {
                     // 失敗した場合は中断
                     if (!result.success && subTask.type != TaskType.CONDITION_CHECK) {
                         Util.msg(player, "§c§lタスクの実行に失敗したため、処理を中断します。")
-                        return@Runnable
+                        break
+                    }
+                    
+                    // 残りのタスクがある場合、結果に基づいてタスクを再評価
+                    if (remainingTasks.isNotEmpty()) {
+                        val updatedTasks = reevaluateTasks(player, request, results, remainingTasks)
+                        if (updatedTasks != null) {
+                            remainingTasks = updatedTasks.toMutableList()
+                            Util.msg(player, "§b§l残りのタスクを再評価しました。${remainingTasks.size}個のタスクが残っています。")
+                        }
                     }
                 }
                 
@@ -138,6 +150,70 @@ class Assistant private constructor() {
         })
     }
 
+    /**
+     * 実行結果に基づいて残りのタスクを再評価する
+     * @param player プレイヤー
+     * @param originalRequest 元のリクエスト
+     * @param completedResults 完了したタスクの結果
+     * @param remainingTasks 残りのタスク
+     * @return 更新されたタスクリスト、または変更がない場合はnull
+     */
+    private fun reevaluateTasks(player: Player, originalRequest: String, completedResults: List<Map<String, Any>>, remainingTasks: List<TaskInfo>): List<TaskInfo>? {
+        val prompt = """
+            以下のリクエストと実行結果に基づいて、残りのタスクを再評価してください。
+            必要に応じてタスクの追加、削除、変更を行ってください。
+            
+            元のリクエスト:
+            ```$originalRequest```
+            
+            完了したタスクの結果:
+            ${gson.toJson(completedResults)}
+            
+            残りのタスク:
+            ${gson.toJson(remainingTasks)}
+            
+            残りのタスクを再評価し、以下のJSON形式で返してください。
+            必要な変更がない場合は、そのまま残りのタスクを返してください。
+            
+            ```json
+            {
+                "tasks": [
+                    {
+                        "task": "タスクの説明",
+                        "type": "info_gathering",
+                        "parameters": {"item": "アイテム名"}
+                    },
+                    ...
+                ]
+            }
+            ```
+            
+            JSONのみを返してください。他の説明は不要です。
+        """.trimIndent()
+        
+        // AIにリクエストを送信
+        val response = sendRequest(player, prompt, false)
+        
+        try {
+            // JSONレスポンスを抽出
+            val jsonPattern = "\\{\\s*\"tasks\"\\s*:\\s*\\[.*?\\]\\s*\\}".toRegex(RegexOption.DOT_MATCHES_ALL)
+            val jsonMatch = jsonPattern.find(response)
+            
+            if (jsonMatch != null) {
+                val jsonStr = jsonMatch.value
+                val taskList = TaskList.fromJson(jsonStr)
+                return taskList?.tasks
+            } else {
+                // 完全なJSONオブジェクトとしてパースを試みる
+                val taskList = TaskList.fromJson(response)
+                return taskList?.tasks
+            }
+        } catch (e: Exception) {
+            plugin.logger.warning("Failed to parse updated tasks from response: ${e.message}")
+            return null
+        }
+    }
+    
     /**
      * リクエストをタスクリストに変換
      * @return タスクのリスト、または変換に失敗した場合はnull

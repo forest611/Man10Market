@@ -7,6 +7,7 @@ import red.man10.man10market.Man10Market
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import java.io.StringReader
 
 /**
  * タスク実行を担当するクラス
@@ -123,22 +124,31 @@ class TaskExecutor(private val plugin: Man10Market, private val assistant: Assis
         val response = assistant.sendRequest(player, prompt, false)
         
         try {
-            // JSONレスポンスをパース
-            val jsonElement = JsonParser.parseString(response)
-            if (jsonElement.isJsonObject) {
-                val jsonObject = jsonElement.asJsonObject
-                val satisfied = jsonObject.get("satisfied")?.asBoolean ?: false
-                val reason = jsonObject.get("reason")?.asString ?: "理由が提供されていません"
+            // レスポンスからJSON部分を抽出する試み
+            val jsonPattern = "\\{[\\s\\S]*?\\}"
+            val regex = Regex(jsonPattern)
+            val matchResult = regex.find(response)
+            
+            if (matchResult != null) {
+                val jsonStr = matchResult.value
                 
-                return TaskResult(
-                    success = true,
-                    message = reason,
-                    data = mapOf(
-                        "satisfied" to satisfied,
-                        "reason" to reason,
-                        "context" to contextInfo
+                // 抽出したJSONをパース
+                val jsonElement = JsonParser.parseString(jsonStr)
+                if (jsonElement.isJsonObject) {
+                    val jsonObject = jsonElement.asJsonObject
+                    val satisfied = jsonObject.get("satisfied")?.asBoolean ?: false
+                    val reason = jsonObject.get("reason")?.asString ?: "理由が提供されていません"
+                    
+                    return TaskResult(
+                        success = true,
+                        message = reason,
+                        data = mapOf(
+                            "satisfied" to satisfied,
+                            "reason" to reason,
+                            "context" to contextInfo
+                        )
                     )
-                )
+                }
             }
         } catch (e: Exception) {
             plugin.logger.warning("Failed to parse condition check response: ${e.message}")
@@ -327,7 +337,8 @@ class TaskExecutor(private val plugin: Man10Market, private val assistant: Assis
             実行結果:
             ${gson.toJson(results)}
             
-            説明は簡潔に、重要なポイントを強調してください。
+            - 説明は簡潔に、各タスク一文で結果を説明してください
+            - マークダウン記法は使用しないでください（*, #, - などの記号を使わない）
         """.trimIndent()
         
         val response = assistant.sendRequest(player, prompt, false)
