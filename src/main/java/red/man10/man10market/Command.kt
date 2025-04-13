@@ -26,6 +26,7 @@ object Command : CommandExecutor {
 
     const val OP = "market.op"
     const val USER = "market.user"
+    const val ASSISTANT = "market.assistant"
     private val sdf = SimpleDateFormat("yyyy-MM-dd hh:mm")
 
 
@@ -193,10 +194,10 @@ object Command : CommandExecutor {
 
             "gpt" -> {
                 if (sender !is Player) return false
-                if (!sender.hasPermission(OP)) return false
+                if (!sender.hasPermission(ASSISTANT)) return false
 
                 if (args.size < 2) {
-                    msg(sender, "§c§l/mce gpt <質問内容>")
+                    msg(sender, "§c§l[開発中機能]/mce gpt <質問内容>")
                     return true
                 }
 
