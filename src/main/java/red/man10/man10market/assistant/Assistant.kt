@@ -1,26 +1,29 @@
 package red.man10.man10market.assistant
 
-import com.openai.client.OpenAIClient
-import com.openai.client.okhttp.OpenAIOkHttpClient
-import com.openai.models.ChatCompletionCreateParams
-import com.openai.models.ChatModel
 import org.bukkit.entity.Player
 import red.man10.man10market.Man10Market
 import red.man10.man10market.Util
 import com.google.gson.Gson
-import com.google.gson.JsonParser
-import kotlinx.coroutines.*
+import com.google.gson.JsonObject
+import com.google.gson.JsonArray
+// コルーチンは使用しないため削除
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 /**
  * Man10Market用のAIアシスタント機能を提供するクラス
  * 市場での取引のアドバイスや、価格分析などを行う
  */
 class Assistant private constructor() {
-    private lateinit var openAI: OpenAIClient
+    private lateinit var httpClient: OkHttpClient
     private lateinit var config: AssistantConfig
     private lateinit var conversationManager: ConversationManager
     private lateinit var taskExecutor: TaskExecutor
     private val gson = Gson()
+    private val JSON = "application/json; charset=utf-8".toMediaType()
 
     companion object {
         private var instance: Assistant? = null
@@ -32,10 +35,10 @@ class Assistant private constructor() {
             }
         }
 
-        fun setup(plugin: Man10Market, apiKey : String) {
+        fun setup(plugin: Man10Market, config: AssistantConfig) {
             this.plugin = plugin
             this.instance = Assistant()
-            this.instance!!.initialize(AssistantConfig(apiKey))
+            this.instance!!.initialize(config)
             // 会話マネージャーの初期化
             ConversationManager.setup(plugin)
         }
@@ -46,8 +49,10 @@ class Assistant private constructor() {
      */
     fun initialize(config: AssistantConfig) {
         this.config = config
-        this.openAI = OpenAIOkHttpClient.builder()
-            .apiKey(config.apiKey)
+        this.httpClient = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .build()
         this.conversationManager = ConversationManager.getInstance()
         this.taskExecutor = TaskExecutor(plugin, this)
@@ -63,14 +68,14 @@ class Assistant private constructor() {
         // プレイヤーに処理開始を通知
         Util.msg(player, "§a§lリクエストを処理しています...")
         
-        // 非同期でタスク処理を実行
-        CoroutineScope(Dispatchers.IO).launch {
+        // Bukkitのスケジューラを使用して非同期処理を実行
+        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
             try {
                 // リクエスト内容をタスクに分割
                 val taskList = requestToTasks(player, request)
                 if (taskList == null || taskList.tasks.isEmpty()) {
                     Util.msg(player, "§c§lリクエストの分析に失敗しました。もう一度お試しください。")
-                    return@launch
+                    return@Runnable
                 }
                 
                 // タスクの数を通知
@@ -107,7 +112,7 @@ class Assistant private constructor() {
                     // 失敗した場合は中断
                     if (!result.success && subTask.type != TaskType.CONDITION_CHECK) {
                         Util.msg(player, "§c§lタスクの実行に失敗したため、処理を中断します。")
-                        return@launch
+                        return@Runnable
                     }
                 }
                 
@@ -130,7 +135,7 @@ class Assistant private constructor() {
                 plugin.logger.warning("Failed to execute tasks: ${e.message}")
                 Util.msg(player, "§c§lエラーが発生しました: ${e.message}")
             }
-        }
+        })
     }
 
     /**
@@ -218,44 +223,14 @@ class Assistant private constructor() {
      */
     fun sendRequest(player: Player, prompt: String, isFromUser: Boolean): String {
         try {
-            // 会話履歴を取得
-            val conversationMessages = if (isFromUser) {
-                conversationManager.getConversationHistoryAsMessages(player)
-            } else {
-                // プラグインからのリクエストの場合は会話履歴を使用しない
-                emptyList()
-            }
+            // メッセージ配列の作成
+            val messagesArray = createMessagesArray(player, prompt, isFromUser)
             
-            // システムプロンプトの作成
-            val systemPrompt = """あなたはMinecraftサーバー「Man10」の市場アシスタントです。
-                プレイヤーのプロンプトに応じて、適切な市場情報やアドバイスを提供してください。
-                
-                プレイヤーからのリクエストに応じて、必要な情報を取得し、適切な市場情報や取引コマンドを生成してください。
-                """.trimIndent()
+            // APIリクエストのボディを作成
+            val requestBody = createRequestBody(messagesArray)
             
-            // APIリクエストの作成
-            var paramsBuilder = ChatCompletionCreateParams.builder()
-                .model(ChatModel.of(config.model))
-                .addSystemMessage(systemPrompt)
-            
-            // 会話履歴を追加
-            conversationMessages.forEach { messageAdder ->
-                paramsBuilder = messageAdder(paramsBuilder)
-            }
-            
-            // 現在のプロンプトを追加
-            paramsBuilder = paramsBuilder.addUserMessage(prompt)
-            
-            // APIリクエスト実行
-            val params = paramsBuilder.temperature(config.temperature).build()
-            val chatCompletion = openAI.chat().completions().create(params)
-            
-            // 応答の取得
-            val content = if (chatCompletion.choices().isEmpty()) {
-                "応答の生成に失敗しました。"
-            } else {
-                chatCompletion.choices()[0].message().content().get()
-            }
+            // HTTPリクエストを実行
+            val content = executeRequest(requestBody)
             
             // ユーザーからのリクエストの場合は会話履歴を保存
             if (isFromUser) {
@@ -265,7 +240,105 @@ class Assistant private constructor() {
             return content
         } catch (e: Exception) {
             plugin.logger.warning("Failed to send request to AI: ${e.message}")
+            e.printStackTrace()
             return "エラーが発生しました。後で再度お試しください。"
+        }
+    }
+    
+    /**
+     * メッセージ配列を作成する
+     */
+    private fun createMessagesArray(player: Player, prompt: String, isFromUser: Boolean): JsonArray {
+        val messagesArray = JsonArray()
+        
+        // システムプロンプトの作成と追加
+        val systemPrompt = """あなたはMinecraftサーバー「Man10」の市場アシスタントです。
+            プレイヤーのプロンプトに応じて、適切な市場情報やアドバイスを提供してください。
+            
+            プレイヤーからのリクエストに応じて、必要な情報を取得し、適切な市場情報や取引コマンドを生成してください。
+            """.trimIndent()
+        
+        addMessageToArray(messagesArray, "system", systemPrompt)
+        
+        // 会話履歴を取得して追加
+        if (isFromUser) {
+            val history = conversationManager.getConversationHistory(player)
+            if (history.isNotEmpty()) {
+                // 古い順に並べ替えて追加
+                history.reversed().forEach { conversation ->
+                    addMessageToArray(messagesArray, "user", conversation.message)
+                    addMessageToArray(messagesArray, "assistant", conversation.response)
+                }
+            }
+        }
+        
+        // 現在のプロンプトを追加
+        addMessageToArray(messagesArray, "user", prompt)
+        
+        return messagesArray
+    }
+    
+    /**
+     * メッセージを配列に追加するヘルパー関数
+     */
+    private fun addMessageToArray(messagesArray: JsonArray, role: String, content: String) {
+        val message = JsonObject()
+        message.addProperty("role", role)
+        message.addProperty("content", content)
+        messagesArray.add(message)
+    }
+    
+    /**
+     * APIリクエストのボディを作成する
+     */
+    private fun createRequestBody(messagesArray: JsonArray): JsonObject {
+        val requestBody = JsonObject()
+        requestBody.addProperty("model", config.model)
+        requestBody.add("messages", messagesArray)
+        requestBody.addProperty("temperature", config.temperature)
+        requestBody.addProperty("max_tokens", config.maxTokens)
+        return requestBody
+    }
+    
+    /**
+     * HTTPリクエストを実行する
+     */
+    private fun executeRequest(requestBody: JsonObject): String {
+        // APIキーをトリムして余分な空白を削除
+        val cleanApiKey = config.apiKey.trim()
+        
+        // HTTPリクエストを作成
+        val request = Request.Builder()
+            .url("https://api.openai.com/v1/chat/completions")
+            .addHeader("Authorization", "Bearer $cleanApiKey")
+            .addHeader("Content-Type", "application/json")
+            .post(gson.toJson(requestBody).toRequestBody(JSON))
+            .build()
+        
+        // 同期的にリクエストを実行
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("APIリクエストが失敗しました: ${response.code}")
+            }
+            
+            val responseBody = response.body?.string() ?: throw IOException("APIレスポンスが空です")
+            return parseResponse(responseBody)
+        }
+    }
+    
+    /**
+     * APIレスポンスを解析する
+     */
+    private fun parseResponse(responseBody: String): String {
+        val jsonResponse = gson.fromJson(responseBody, JsonObject::class.java)
+        
+        // 応答の取得
+        val choices = jsonResponse.getAsJsonArray("choices")
+        return if (choices == null || choices.size() == 0) {
+            "応答の生成に失敗しました。"
+        } else {
+            val message = choices.get(0).asJsonObject.getAsJsonObject("message")
+            message.get("content").asString
         }
     }
 }

@@ -7,5 +7,5 @@ data class AssistantConfig(
     val apiKey: String,
     val model: String = "gpt-4o",
     val temperature: Double = 0.7,
-    val maxTokens: Long = 32768
+    val maxTokens: Int = 2048
 )

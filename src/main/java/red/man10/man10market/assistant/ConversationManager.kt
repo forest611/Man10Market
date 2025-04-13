@@ -5,7 +5,7 @@ import red.man10.man10itembank.util.MySQLManager
 import red.man10.man10market.Man10Market
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import com.openai.models.ChatCompletionCreateParams
+// OpenAIライブラリの参照を削除
 
 /**
  * プレイヤーごとの会話履歴を管理するクラス
@@ -127,30 +127,7 @@ class ConversationManager private constructor() {
         return sb.toString()
     }
     
-    /**
-     * 会話履歴をOpenAI API用のメッセージ配列として取得
-     * @return 会話履歴のメッセージ配列を返す関数リスト
-     */
-    fun getConversationHistoryAsMessages(player: Player): List<(ChatCompletionCreateParams.Builder) -> ChatCompletionCreateParams.Builder> {
-        val history = getConversationHistory(player)
-        if (history.isEmpty()) return emptyList()
-        
-        val messages = mutableListOf<(ChatCompletionCreateParams.Builder) -> ChatCompletionCreateParams.Builder>()
-        
-        // 新しい順に取得されるので、古い順に並べ替え
-        history.reversed().forEach { conversation ->
-            // ユーザーメッセージ
-            messages.add { builder -> 
-                builder.addUserMessage(conversation.message)
-            }
-            // アシスタントメッセージ
-            messages.add { builder -> 
-                builder.addSystemMessage(conversation.response) // システムメッセージとして追加
-            }
-        }
-        
-        return messages
-    }
+    // getConversationHistoryAsMessagesメソッドは不要になったので削除
 }
 
 /**

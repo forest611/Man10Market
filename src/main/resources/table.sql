@@ -1,4 +1,4 @@
-create table order_table
+create table if not exists order_table
 (
     id         int auto_increment,
     player     varchar(16)            null,
@@ -16,7 +16,7 @@ create table order_table
 create index order_table_index
     on order_table (uuid, item_id, buy, sell, entry_date);
 
-create table tick_table
+create table if not exists tick_table
 (
     id      int auto_increment,
     item_id varchar(32)            null,
@@ -31,7 +31,7 @@ create table tick_table
 create index tick_table_item_id_index
     on tick_table (item_id);
 
-create table execution_log
+create table if not exists execution_log
 (
     id       int auto_increment,
     player   varchar(16)            null,
@@ -45,7 +45,7 @@ create table execution_log
         primary key (id)
 );
 
-create table stock_table
+create table if not exists stock_table
 (
     id                 int auto_increment,
     player             varchar(16) null,
@@ -53,15 +53,15 @@ create table stock_table
     stock_name         varchar(64) null,
     total_issued_stock int         null,
     last_issue_date    datetime    null,
-    constraint Stock_table_pk
+    constraint stock_table_pk
         primary key (id)
 );
 
-create index Stock_table_uuid_stock_name_index
-    on Stock_table (uuid, stock_name);
+create index stock_table_uuid_stock_name_index
+    on stock_table (uuid, stock_name);
 
 
-create table hour_table
+create table if not exists hour_table
 (
     id      int auto_increment
         primary key,
@@ -81,7 +81,7 @@ create table hour_table
 create index hour_table_item_id_year_month_day_hour_index
     on hour_table (item_id, year, month, day, hour, date);
 
-create table day_table
+create table if not exists day_table
 (
     id      int auto_increment
         primary key,
@@ -100,7 +100,7 @@ create table day_table
 create index day_table_item_id_year_month_day_index
     on day_table (item_id, year, month, day, date);
 
-CREATE TABLE IF NOT EXISTS assistant_conversation
+create table if not exists assistant_conversation
 (
     id              INT AUTO_INCREMENT,
     uuid            VARCHAR(36)             NOT NULL,  -- プレイヤーのUUID
@@ -112,12 +112,11 @@ CREATE TABLE IF NOT EXISTS assistant_conversation
         PRIMARY KEY (id)
 );
 
--- MySQLのバージョンによっては IF NOT EXISTS がサポートされていないため削除
-CREATE INDEX assistant_conversation_uuid_index
-    ON assistant_conversation (uuid);
+create index assistant_conversation_uuid_index
+    on assistant_conversation (uuid);
 
-CREATE INDEX assistant_conversation_created_at_index
-    ON assistant_conversation (created_at);
+create index assistant_conversation_created_at_index
+    on assistant_conversation (created_at);
 
 
 -- SELECT
